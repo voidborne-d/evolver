@@ -182,13 +182,21 @@ process.stdin.on('end', () => {
                 const totalMem = os.totalmem();
                 const freeMem = os.freemem();
                 const usedMem = totalMem - freeMem;
+                
+                const uptimeSec = os.uptime();
+                const d = Math.floor(uptimeSec / (3600*24));
+                const h = Math.floor(uptimeSec % (3600*24) / 3600);
+                const m = Math.floor(uptimeSec % 3600 / 60);
+                const uptimeStr = (d > 0 ? `${d}d ` : '') + (h > 0 ? `${h}h ` : '') + `${m}m`;
+
                 const info = `
 **System Info**:
 - **Node**: ${process.version}
 - **OS**: ${os.type()} ${os.release()}
 - **Memory**: ${Math.round(usedMem / 1024 / 1024)}MB / ${Math.round(totalMem / 1024 / 1024)}MB
 - **RSS**: ${Math.round(memUsage.rss / 1024 / 1024)}MB
-- **Uptime**: ${Math.round(os.uptime() / 60)} min
+- **Uptime**: ${uptimeStr}
+- **Load**: ${os.loadavg().map(l => l.toFixed(2)).join(', ')}
                 `.trim();
                 sendFeedback(userId, 'System Info', info, 'blue');
              } catch (err) {
