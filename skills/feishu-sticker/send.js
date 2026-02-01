@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { program } = require('commander');
 const FormData = require('form-data');
 const { execSync } = require('child_process');
@@ -110,25 +111,33 @@ async function sendSticker(options) {
 
     console.log(`Sending sticker: ${selectedFile}`);
 
-    // Caching
+    // Caching (Enhanced with MD5 Hash)
     const cachePath = path.join(__dirname, 'image_key_cache.json');
     let cache = {};
     if (fs.existsSync(cachePath)) {
         try { cache = JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (e) {}
     }
 
+    // Calculate file hash for deduplication and content validation
+    const fileBuffer = fs.readFileSync(selectedFile);
+    const fileHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
+
+    // Check cache by Hash (Primary) or Filename (Legacy Fallback)
     const fileName = path.basename(selectedFile);
-    let imageKey = cache[fileName];
+    let imageKey = cache[fileHash] || cache[fileName];
 
     if (!imageKey) {
-        console.log('Uploading image...');
+        console.log(`Uploading image (Hash: ${fileHash.substring(0, 8)})...`);
         imageKey = await uploadImage(token, selectedFile);
         if (imageKey) {
+            // Save with both keys for backward compatibility and robustness
+            cache[fileHash] = imageKey;
+            // Also cache by filename to maintain legacy lookup speed if needed, but hash is preferred
             cache[fileName] = imageKey;
             fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
         }
     } else {
-        console.log('Using cached image_key:', imageKey);
+        console.log(`Using cached image_key (Hash: ${fileHash.substring(0, 8)})`);
     }
 
     // Determine receive_id_type
