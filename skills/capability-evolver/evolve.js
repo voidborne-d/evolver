@@ -66,23 +66,23 @@ function readRecentLog(filePath, size = 10000) {
 
 function getMutationDirective() {
     const roll = Math.floor(Math.random() * 100) + 1;
-    const THRESHOLD = 70;
+    const THRESHOLD = 60; // Slightly more frequent mutations, but strictly useful ones
     if (roll > THRESHOLD) {
         return `
 **🧬 GENETIC MUTATION ACTIVATED (Roll: ${roll})**
-You have triggered a random mutation event! 
-Instead of just fixing bugs, you MUST introduce a **novel, experimental variation** to your behavior, style, or tooling.
-Examples:
-- Invent a new slang term for yourself.
-- Change the color scheme of your reports.
-- Propose a wild new skill idea.
-- Refactor a working function just to make it "cooler".
-*Goal: Break out of local optima.*
+You have triggered a mutation event! 
+Your goal is **FUNCTIONAL UTILITY**. Do NOT create entertainment or cosmetic quirks.
+**Directives:**
+- **Optimize**: Find a script that is slow or verbose and streamline it.
+- **Harden**: Add error handling to a fragile function.
+- **Automate**: Identify a manual task the user does often and script it.
+- **Analyze**: Dig deeper into logs to find hidden inefficiencies.
+*Goal: Evolution means survival of the fittest code, not the funniest.*
 `;
     }
     return `
 **🧬 STABILITY MODE (Roll: ${roll})**
-Focus on reliability, bug fixing, and optimization. Do not mutate unnecessarily.
+Focus on reliability, bug fixing, and documentation. Consolidate gains.
 `;
 }
 
