@@ -82,12 +82,13 @@ COUNT=0
 SUCCESS=0
 
 while [ $COUNT -lt $MAX_RETRIES ]; do
-  if git push origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
+  if OUT=$(git push origin "$CURRENT_BRANCH" 2>&1); then
     echo "Push successful."
     SUCCESS=1
     break
   else
     echo "Push failed. Retrying in 3s... ($((COUNT+1))/$MAX_RETRIES)"
+    echo "DEBUG: $OUT"
     sleep 3
     COUNT=$((COUNT+1))
   fi
