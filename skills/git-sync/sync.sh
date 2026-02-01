@@ -23,10 +23,24 @@ else
   exit 1
 fi
 
-# Push
-if git push origin main; then
-  echo "Push successful."
-else
-  echo "Push failed."
+# Push with Retry
+MAX_RETRIES=3
+COUNT=0
+SUCCESS=0
+
+while [ $COUNT -lt $MAX_RETRIES ]; do
+  if git push origin main; then
+    echo "Push successful."
+    SUCCESS=1
+    break
+  else
+    echo "Push failed. Retrying in 3 seconds... ($((COUNT+1))/$MAX_RETRIES)"
+    sleep 3
+    COUNT=$((COUNT+1))
+  fi
+done
+
+if [ $SUCCESS -eq 0 ]; then
+  echo "Push failed after $MAX_RETRIES attempts."
   exit 1
 fi
