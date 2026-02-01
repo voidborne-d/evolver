@@ -17,7 +17,7 @@ function getRandomProxy() {
 
 async function run() {
     console.log('Starting Stealth Boost (Resumed)...');
-    let count = 465; // Resuming from last known count
+    let count = 929; // Resuming from last known count
     
     while (count < 9000) {
         const proxy = getRandomProxy();

@@ -158,19 +158,23 @@ async function sendCard(options) {
     }
 
     if (contentText) {
-        // Use the 'markdown' tag directly for better rendering support (code blocks, tables, etc.)
-        // Ref: https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/content-components/rich-text
+        // Use 'div' + 'lark_md' for maximum compatibility (classic method)
+        // 'markdown' tag (v2) sometimes behaves inconsistently across clients
         const markdownElement = {
-            tag: 'markdown',
-            content: contentText
+            tag: 'div',
+            text: {
+                tag: 'lark_md',
+                content: contentText
+            }
         };
         
         if (options.textSize) {
-            markdownElement.text_size = options.textSize;
+            // markdownElement.text_size = options.textSize; // div doesn't support text_size directly on root usually, but inner text might?
+            // lark_md doesn't support explicit text_size property in this structure easily, skipping for compat
         }
         
         if (options.textAlign) {
-            markdownElement.text_align = options.textAlign;
+            // markdownElement.text_align = options.textAlign; // div supports text_align? No.
         }
 
         elements.push(markdownElement);
@@ -250,14 +254,61 @@ async function sendCard(options) {
         const data = await res.json();
         
         if (data.code !== 0) {
-             console.error('Feishu API Error:', JSON.stringify(data, null, 2));
-             process.exit(1);
+             console.warn(`[Feishu-Card] Card send failed (Code: ${data.code}, Msg: ${data.msg}). Attempting fallback to plain text...`);
+             return await sendPlainTextFallback(token, receiveIdType, options.target, contentText, options.title);
         }
         
         console.log('Success:', JSON.stringify(data.data, null, 2));
 
     } catch (e) {
-        console.error('Network Error:', e.message);
+        console.error('Network/API Error during Card Send:', e.message);
+        console.log('[Feishu-Card] Attempting fallback to plain text...');
+        return await sendPlainTextFallback(token, receiveIdType, options.target, contentText, options.title);
+    }
+}
+
+async function sendPlainTextFallback(token, receiveIdType, receiveId, text, title) {
+    if (!text) {
+        console.error('Fallback failed: No text content available (Image-only cards cannot fallback to text).');
+        process.exit(1);
+    }
+
+    // Append title if present to preserve context
+    let finalContent = text;
+    if (title) {
+        finalContent = `【${title}】\n\n${text}`;
+    }
+
+    const messageBody = {
+        receive_id: receiveId,
+        msg_type: 'text',
+        content: JSON.stringify({
+            text: finalContent
+        })
+    };
+
+    console.log(`Sending Fallback Text to ${receiveId}...`);
+
+    try {
+        const res = await fetch(
+            `https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(messageBody)
+            }
+        );
+        const data = await res.json();
+        if (data.code !== 0) {
+             console.error('Fallback Text Send Failed:', JSON.stringify(data, null, 2));
+             process.exit(1);
+        }
+        console.log('Fallback Success:', JSON.stringify(data.data, null, 2));
+    } catch (e) {
+        console.error('Fallback Network Error:', e.message);
         process.exit(1);
     }
 }
