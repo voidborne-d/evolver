@@ -117,6 +117,13 @@ async function sendSticker(options) {
     if (options.file) {
         selectedFile = path.resolve(options.file);
     } else {
+        if (!fs.existsSync(stickerDir)) {
+             console.warn(`Sticker directory missing: ${stickerDir}. Creating...`);
+             try { fs.mkdirSync(stickerDir, { recursive: true }); } catch (e) {
+                 console.error('Failed to create sticker directory:', e.message);
+                 process.exit(1);
+             }
+        }
         try {
             // Prioritize WebP, allow others
             const files = fs.readdirSync(stickerDir).filter(f => /\.(webp|jpg|png|gif)$/i.test(f));
@@ -316,6 +323,9 @@ function getAutoTarget() {
         if (fs.existsSync(contextPath)) {
             const context = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
             if (context.last_target_id) return context.last_target_id;
+            // Fallback to interaction-logger fields
+            if (context.last_active_chat) return context.last_active_chat;
+            if (context.last_active_user) return context.last_active_user;
         }
     } catch (e) {}
 

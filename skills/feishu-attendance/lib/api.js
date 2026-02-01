@@ -42,9 +42,9 @@ async function getAllUsers() {
   return users;
 }
 
-async function getAttendance(userIds, dateInt) {
+async function getAttendance(userIds, dateInt, idType = 'employee_id') {
   const token = await getTenantAccessToken();
-  const url = 'https://open.feishu.cn/open-apis/attendance/v1/user_tasks/query?employee_type=employee_id';
+  const url = `https://open.feishu.cn/open-apis/attendance/v1/user_tasks/query?employee_type=${idType}`;
   
   const chunks = [];
   for (let i = 0; i < userIds.length; i += 50) {
@@ -70,7 +70,7 @@ async function getAttendance(userIds, dateInt) {
     if (data.code === 0 && data.data.user_task_results) {
       allTasks = allTasks.concat(data.data.user_task_results);
     } else {
-      console.error('Attendance query failed for chunk:', JSON.stringify(data));
+      console.error(`Attendance query failed for chunk (${idType}):`, JSON.stringify(data));
     }
   }
 

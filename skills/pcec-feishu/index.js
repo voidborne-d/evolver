@@ -68,7 +68,13 @@ node skills/feishu-card/send.js --title "🧬 Evolution Cycle Completed" --color
         console.error('Evolution failed:', e);
         try {
             const errorFile = path.resolve(__dirname, 'evolution_error.log');
-            const errorMsg = `🧬 **Evolution Critical Failure**\n\n**Error**: ${e.message}\n\n\`\`\`\n${e.stack}\n\`\`\``;
+            let errorMsg = `🧬 **Evolution Critical Failure**\n\n**Error**: ${e.message}\n\n\`\`\`\n${e.stack}\n\`\`\``;
+            
+            // DX Improvement: Hint for common Gateway errors
+            if (e.message.includes('Gateway agent failed') || e.message.includes('Pass --to')) {
+                errorMsg += `\n\n💡 **Hint**: You likely used the generic \`message\` tool without a target. \n**ALWAYS** use \`node skills/feishu-card/send.js\` as instructed in the override!`;
+            }
+
             fs.writeFileSync(errorFile, errorMsg);
             
             // Attempt to send failure notification

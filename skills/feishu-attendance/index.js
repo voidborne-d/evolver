@@ -103,14 +103,35 @@ async function main() {
 
     const userIds = users.map(u => u.user_id).filter(id => !!id); // Use user_id (employee_id) for querying
 
-    if (userIds.length === 0) {
+    // Stability: Hybrid ID Support (user_id + open_id fallback)
+    const employeeIds = [];
+    const openIds = [];
+
+    users.forEach(u => {
+        if (u.user_id) employeeIds.push(u.user_id);
+        else if (u.open_id) openIds.push(u.open_id);
+    });
+
+    if (employeeIds.length === 0 && openIds.length === 0) {
       console.log("No users found to check.");
       return;
     }
 
     // 2. Get attendance
     console.log('Fetching attendance records...');
-    const results = await getAttendance(userIds, dateInt);
+    let results = [];
+    
+    if (employeeIds.length > 0) {
+        console.log(`Querying ${employeeIds.length} users via employee_id...`);
+        const r1 = await getAttendance(employeeIds, dateInt, 'employee_id');
+        results = results.concat(r1);
+    }
+    
+    if (openIds.length > 0) {
+         console.log(`Querying ${openIds.length} users via open_id (fallback)...`);
+         const r2 = await getAttendance(openIds, dateInt, 'open_id');
+         results = results.concat(r2);
+    }
     
     // 3. Analyze
     const report = {
