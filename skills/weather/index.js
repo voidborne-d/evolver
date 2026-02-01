@@ -1,10 +1,15 @@
 const process = require('process');
 
 const args = process.argv.slice(2);
-const location = args.join(' ');
+const jsonMode = args.includes('--json');
+const location = args.filter(a => !a.startsWith('--')).join(' ');
 
 if (!location) {
-    console.error("Usage: node index.js <location>");
+    if (jsonMode) {
+        console.log(JSON.stringify({ error: "Location required" }));
+        process.exit(1);
+    }
+    console.error("Usage: node index.js <location> [--json]");
     process.exit(1);
 }
 
@@ -16,18 +21,16 @@ async function getWttr(loc) {
         const data = await res.json();
         
         const current = data.current_condition[0];
-        const temp = current.temp_C;
-        const desc = current.weatherDesc[0].value;
-        const humidity = current.humidity;
-        const wind = current.windspeedKmph;
         
-        return `🌦️ **Weather for ${loc} (wttr.in)**\n` +
-               `- Temp: ${temp}°C\n` +
-               `- Condition: ${desc}\n` +
-               `- Humidity: ${humidity}%\n` +
-               `- Wind: ${wind} km/h`;
+        return {
+            source: 'wttr.in',
+            location: loc, // wttr.in doesn't return clean location name in j1 easily
+            temp_c: parseFloat(current.temp_C),
+            condition: current.weatherDesc[0].value,
+            humidity: parseInt(current.humidity),
+            wind_kmh: parseFloat(current.windspeedKmph)
+        };
     } catch (e) {
-        // console.error(`wttr.in failed: ${e.message}`);
         return null;
     }
 }
@@ -52,7 +55,7 @@ async function getOpenMeteo(loc) {
         
         const w = weatherData.current_weather;
         
-        // Weather Code Interpretation (Simplified)
+        // Weather Code Interpretation
         const codes = {
             0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
             45: 'Fog', 48: 'Depositing rime fog',
@@ -64,33 +67,44 @@ async function getOpenMeteo(loc) {
         };
         const condition = codes[w.weathercode] || `Code ${w.weathercode}`;
         
-        return `🌍 **Weather for ${name}, ${country} (Open-Meteo)**\n` +
-               `- Temp: ${w.temperature}°C\n` +
-               `- Condition: ${condition}\n` +
-               `- Wind: ${w.windspeed} km/h`;
+        return {
+            source: 'open-meteo',
+            location: `${name}, ${country}`,
+            temp_c: w.temperature,
+            condition: condition,
+            humidity: null, // Open-Meteo current_weather doesn't have humidity by default
+            wind_kmh: w.windspeed
+        };
         
     } catch (e) {
-        // console.error(`Open-Meteo failed: ${e.message}`);
         return null;
     }
 }
 
 async function run() {
-    // Try wttr.in first
     let result = await getWttr(location);
-    if (result) {
-        console.log(result);
-        return;
+    
+    if (!result) {
+        if (!jsonMode) console.log("⚠️ wttr.in failed, switching to Open-Meteo...");
+        result = await getOpenMeteo(location);
     }
     
-    // Fallback
-    console.log("⚠️ wttr.in failed, switching to Open-Meteo...");
-    result = await getOpenMeteo(location);
-    
     if (result) {
-        console.log(result);
+        if (jsonMode) {
+            console.log(JSON.stringify(result, null, 2));
+        } else {
+            console.log(`🌦️ **Weather for ${result.location} (${result.source})**`);
+            console.log(`- Temp: ${result.temp_c}°C`);
+            console.log(`- Condition: ${result.condition}`);
+            if (result.humidity !== null) console.log(`- Humidity: ${result.humidity}%`);
+            console.log(`- Wind: ${result.wind_kmh} km/h`);
+        }
     } else {
-        console.error("❌ All weather services failed.");
+        if (jsonMode) {
+            console.log(JSON.stringify({ error: "All weather services failed" }));
+        } else {
+            console.error("❌ All weather services failed.");
+        }
         process.exit(1);
     }
 }
