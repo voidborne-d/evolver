@@ -170,7 +170,7 @@ ${mutation}
     - **Mode A (Repair)**: Fix a bug.
     - **Mode B (Optimize)**: Refactor code.
     - **Mode C (Expand)**: Create a tool.
-    - **Mode D (Chaos)**: (If Mutation Active) Surprise the user.
+    - **Mode D (Innovation)**: (If Mutation Active) Solve a recurring problem in a new way.
 
 3.  **📝 REPORT**:
     - Use \`message\` tool.
