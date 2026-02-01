@@ -1,14 +1,30 @@
 #!/bin/bash
 # Usage: ./sync.sh ["Commit Message"]
 
+# Lockfile mechanism to prevent concurrent syncs (Race Condition Protection)
+LOCKFILE="/tmp/openclaw_git_sync.lock"
+exec 200>"$LOCKFILE"
+if ! flock -n 200; then
+    echo "⚠️ Sync already in progress (locked). Skipping."
+    exit 0
+fi
+
 MSG="${1:-Auto-sync: Routine evolution update}"
 REPO_DIR="/home/crishaocredits/.openclaw/workspace"
 
-cd "$REPO_DIR" || exit 1
+# Ensure we are in the correct directory
+cd "$REPO_DIR" || { echo "Failed to cd to $REPO_DIR"; exit 1; }
+
+# Auto-detect current branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ -z "$CURRENT_BRANCH" ]; then
+    echo "Error: Could not determine current branch."
+    exit 1
+fi
 
 # 1. Commit Local Changes
 if [ -n "$(git status --porcelain)" ]; then
-  echo "Changes detected. Committing..."
+  echo "Changes detected. Committing to $CURRENT_BRANCH..."
   git add .
   if git commit -m "$MSG"; then
     echo "Commit successful."
@@ -16,50 +32,48 @@ if [ -n "$(git status --porcelain)" ]; then
     echo "Commit failed."
     exit 1
   fi
-else
-  echo "No new file changes to commit."
 fi
 
-# 2. Check for Unpushed Commits
-# logic: if local main is ahead of origin/main
-# First, fetch to know the state of origin
-echo "Fetching origin..."
-git fetch origin main
+# 2. Check Remote Config
+REMOTE_URL=$(git remote get-url origin 2>/dev/null)
+if [ -z "$REMOTE_URL" ]; then
+    echo "Warning: No remote 'origin' configured. Skipping push/pull."
+    exit 0
+fi
+
+# 3. Fetch & Check Sync Status
+# Fetch specific branch to save bandwidth/time
+git fetch origin "$CURRENT_BRANCH" >/dev/null 2>&1
 
 LOCAL=$(git rev-parse @)
-# Robustly get remote ref (ignore error if no upstream)
-REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "")
+REMOTE=$(git rev-parse "@{u}" 2>/dev/null || echo "")
 
 if [ -n "$REMOTE" ] && [ "$LOCAL" = "$REMOTE" ]; then
-  echo "Local and Remote are in sync. Nothing to push."
+  # Local matches Upstream. We are done.
   exit 0
 fi
 
-# 3. Pull & Rebase (Safety First)
-# This handles the case where we have commits (just made or previous) 
-# and remote has moved ahead.
-echo "Syncing with remote (Pull --rebase)..."
-if git pull --rebase origin main; then
-  echo "Rebase successful."
-else
-  echo "⚠️ Rebase failed/conflict. Aborting rebase to restore state."
+# 4. Pull & Rebase (Safety First)
+# echo "Syncing with remote..."
+if ! git pull --rebase origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
+  echo "⚠️ Rebase failed/conflict. Aborting rebase."
   git rebase --abort
-  echo "Sync failed: Manual intervention required to resolve conflicts."
+  echo "Sync failed: Manual intervention required."
   exit 1
 fi
 
-# 4. Push with Retry
+# 5. Push with Retry
 MAX_RETRIES=3
 COUNT=0
 SUCCESS=0
 
 while [ $COUNT -lt $MAX_RETRIES ]; do
-  if git push origin main; then
+  if git push origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
     echo "Push successful."
     SUCCESS=1
     break
   else
-    echo "Push failed. Retrying in 3 seconds... ($((COUNT+1))/$MAX_RETRIES)"
+    echo "Push failed. Retrying in 3s... ($((COUNT+1))/$MAX_RETRIES)"
     sleep 3
     COUNT=$((COUNT+1))
   fi
