@@ -205,5 +205,28 @@
       },
       "timestamp": 1769950441
     }
+  },
+  {
+    "timestamp": "2026-02-01T23:55:49.014Z",
+    "eventKey": "test_menu_button",
+    "userId": "ou_cdc63fe05e88c580aedead04d851fc04",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "1644ccbd4e7af738c380f5a8523b3814",
+      "token": "",
+      "create_time": "1769990148000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "test_menu_button",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_cdc63fe05e88c580aedead04d851fc04",
+          "union_id": "on_56bd32d8c4a7640c1a8c8b4b62b1b881",
+          "user_id": "af9dadf5"
+        }
+      },
+      "timestamp": 1769990148
+    }
   }
 ]
