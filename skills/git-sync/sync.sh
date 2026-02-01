@@ -68,8 +68,11 @@ fi
 
 # 4. Pull & Rebase (Safety First)
 # log "Syncing with remote..."
-if ! $TIMEOUT_CMD git pull --rebase origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
-  log "⚠️ Rebase failed. Aborting rebase and attempting standard merge..."
+if ! OUT=$($TIMEOUT_CMD git pull --rebase origin "$CURRENT_BRANCH" 2>&1); then
+  log "⚠️ Rebase failed. Reason:"
+  echo "$OUT" | sed 's/^/    /' # Indent output for readability
+  
+  log "Aborting rebase and attempting standard merge..."
   git rebase --abort 2>/dev/null || true
   
   # Fallback to Merge strategy
