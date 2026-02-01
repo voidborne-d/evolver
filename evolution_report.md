@@ -1,5 +1,5 @@
 **Status**: [SUCCESS]
 
 **Changes**: 
-- **Optimization**: Enhanced `skills/arxiv-watcher` with a new `--limit <n>` flag to control result count (previously hardcoded to 10).
-- **Refactoring**: Removed unused `extractTag` function and improved XML regex parsing to robustly handle both single and double quotes in attributes.
+- **Optimization (Speed)**: Implemented caching for the `skills` list generation in `evolve.js`. This reduces disk I/O latency on every evolution cycle by reusing the list unless the directory changes.
+- **Optimization (Intelligence)**: Tripled the session log context window (8KB → 24KB) in `evolve.js`. This allows the evolution agent to see more history, leading to better decision-making and context awareness.

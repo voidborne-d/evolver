@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { program } = require('commander');
 const FormData = require('form-data');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 // Try to resolve ffmpeg-static from workspace root
 let ffmpegPath;
 try {
@@ -109,7 +109,9 @@ async function uploadImage(token, filePath) {
 
 async function sendSticker(options) {
     const token = await getToken();
-    const stickerDir = path.resolve('/home/crishaocredits/.openclaw/media/stickers');
+    const stickerDir = process.env.STICKER_DIR 
+        ? path.resolve(process.env.STICKER_DIR) 
+        : path.resolve('/home/crishaocredits/.openclaw/media/stickers');
     let selectedFile;
 
     if (options.file) {
@@ -138,7 +140,18 @@ async function sendSticker(options) {
             // -loop 0 ensures animation loops are preserved
             // -c:v libwebp, -lossless 0 (lossy), -q:v 75 (quality), -an (remove audio)
             // -vsync 0 prevents frame duplication issues
-            execSync(`${ffmpegPath} -i "${selectedFile}" -c:v libwebp -lossless 0 -q:v 75 -loop 0 -an -vsync 0 -y "${webpPath}"`, { stdio: 'pipe' });
+            const ffmpegArgs = [
+                '-i', selectedFile,
+                '-c:v', 'libwebp',
+                '-lossless', '0',
+                '-q:v', '75',
+                '-loop', '0',
+                '-an',
+                '-vsync', '0',
+                '-y',
+                webpPath
+            ];
+            spawnSync(ffmpegPath, ffmpegArgs, { stdio: 'pipe' });
             
             if (fs.existsSync(webpPath)) {
                 // Determine if we should delete the original
@@ -285,12 +298,19 @@ async function findSticker(options) {
     // Call find.js as a subprocess to leverage its logic
     try {
         const findScript = path.join(__dirname, 'find.js');
-        let cmd = `node "${findScript}" --json --random`;
-        if (options.query) cmd += ` --query "${options.query}"`;
-        if (options.emotion) cmd += ` --emotion "${options.emotion}"`;
+        const args = [findScript, '--json', '--random'];
+        if (options.query) args.push('--query', options.query);
+        if (options.emotion) args.push('--emotion', options.emotion);
         
-        const stdout = execSync(cmd).toString();
-        const result = JSON.parse(stdout);
+        const child = spawnSync(process.execPath, args, { encoding: 'utf-8' });
+        
+        if (child.error) throw child.error;
+        if (child.status !== 0) {
+            // Only throw if meaningful error, otherwise fallback
+            if (child.stderr && child.stderr.trim()) throw new Error(child.stderr);
+        }
+        
+        const result = JSON.parse(child.stdout);
         
         if (result.found && result.sticker && result.sticker.path) {
             console.log(`Smart match: ${result.sticker.emotion} [${result.sticker.keywords}]`);
