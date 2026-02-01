@@ -313,6 +313,20 @@ async function sendCardLogic(token, options) {
         });
     }
 
+    if (options.jsonElements) {
+        try {
+            const parsed = JSON.parse(options.jsonElements);
+            if (Array.isArray(parsed)) {
+                console.log(`[Feishu-Card] Appending ${parsed.length} custom elements from JSON.`);
+                elements.push(...parsed);
+            } else {
+                console.warn('[Feishu-Card] Warning: --json-elements must be a JSON Array. Ignoring.');
+            }
+        } catch (e) {
+            console.warn(`[Feishu-Card] Warning: Invalid JSON in --json-elements: ${e.message}`);
+        }
+    }
+
     const cardObj = buildCardContent(elements, options.title, options.color);
     
     let receiveIdType = 'open_id';
@@ -442,7 +456,8 @@ program
   .option('--text-size <size>', 'Text size')
   .option('--text-align <align>', 'Text alignment')
   .option('--image-path <path>', 'Path to local image to embed')
-  .option('--image-alt <text>', 'Alt text for image');
+  .option('--image-alt <text>', 'Alt text for image')
+  .option('--json-elements <json>', 'Raw JSON string for card elements (overrides text/image)');
 
 program.parse(process.argv);
 const options = program.opts();
@@ -518,12 +533,8 @@ function getAutoTarget() {
                 console.log(`[Feishu-Card] Target Source: USER.md (Master: ${masterMatch[1]})`);
                 return masterMatch[1];
             }
-            // Fallback: Just find the first "ou_" ID in the file if specific Master tag fails
-            const firstOu = userMd.match(/`(ou_[a-z0-9]+)`/);
-            if (firstOu && firstOu[1]) {
-                 console.log(`[Feishu-Card] Target Source: USER.md (First Found: ${firstOu[1]})`);
-                 return firstOu[1];
-            }
+            // Removed unsafe fallback to "First Found" ID to prevent leaking data to non-master users (e.g. Li Mingxuan)
+            console.warn('[Feishu-Card] Warning: No Master ID found in USER.md (Strict Mode Active).');
         }
     } catch (e) {}
     
