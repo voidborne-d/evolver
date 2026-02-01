@@ -29,6 +29,7 @@ try {
     execSync('clawhub whoami', { stdio: 'ignore' });
 } catch (e) {
     console.log('⚠️ ClawHub Auth Missing (Unauthorized). Skipping publish.');
+    console.log('   👉 Run `clawhub login` in the terminal to enable auto-publishing.');
     process.exit(0); // Exit cleanly so we don't break the chain
 }
 
