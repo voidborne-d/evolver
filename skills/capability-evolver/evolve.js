@@ -230,7 +230,9 @@ async function run() {
     const cycleNum = getNextCycleId();
     const cycleId = `Cycle #${cycleNum}`;
     
-    // Reporting Directive Logic
+    // 2. Detect Workspace State (Enhanced Skill Map)
+    let fileList = '';
+    const skillsDir = path.resolve(__dirname, '../../skills');
     const hasFeishuCard = fs.existsSync(path.join(skillsDir, 'feishu-card'));
     
     let reportingDirective = `3.  **📝 REPORT**:
@@ -250,9 +252,6 @@ async function run() {
     - **Target**: Auto-detects context.`;
     }
 
-    // 2. Detect Workspace State (Enhanced Skill Map)
-    let fileList = '';
-    const skillsDir = path.resolve(__dirname, '../../skills');
     const SKILLS_CACHE_FILE = path.join(MEMORY_DIR, 'skills_list_cache.json');
     
     try {
