@@ -40,9 +40,18 @@ async function main() {
   // Holiday Check
   let isWorkday = true;
   let dayType = 'Workday';
+  let holidayCheckWarning = '';
+  
   try {
       console.log('Checking holiday status...');
-      const holidayRes = await fetch(`https://timor.tech/api/holiday/info/${dateStr}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+      const holidayRes = await fetch(`https://timor.tech/api/holiday/info/${dateStr}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!holidayRes.ok) throw new Error(`HTTP ${holidayRes.status}`);
+
       const holidayData = await holidayRes.json();
       // type: 0=workday, 1=weekend, 2=holiday, 3=makeup
       if (holidayData && holidayData.type) {
@@ -56,7 +65,8 @@ async function main() {
           console.log(`Date ${dateStr} is a ${dayType} (type: ${type}).`);
       }
   } catch (e) {
-      console.error('Failed to check holiday API, assuming workday:', e.message);
+      console.error('Failed to check holiday API (using default: Workday):', e.message);
+      holidayCheckWarning = `⚠️ *Warning*: Holiday check failed (${e.message}). Assumed Workday.`;
   }
 
   try {
@@ -138,7 +148,9 @@ async function main() {
     }
 
     // 4. Report to Admin
-    let summary = `📋 *Attendance Report (${dateStr})*\nType: ${dayType} ${!isWorkday ? '(No Absent Checks)' : ''}\nTotal Checked: ${report.total}\n\n`;
+    let summary = `📋 *Attendance Report (${dateStr})*\nType: ${dayType} ${!isWorkday ? '(No Absent Checks)' : ''}\nTotal Checked: ${report.total}\n`;
+    if (holidayCheckWarning) summary += `${holidayCheckWarning}\n`;
+    summary += `\n`;
 
     if (report.late.length > 0) summary += `🔴 *Late*:\n${report.late.join(', ')}\n\n`;
     if (report.early.length > 0) summary += `🟡 *Early Leave*:\n${report.early.join(', ')}\n\n`;
@@ -150,17 +162,24 @@ async function main() {
 
     // Add detailed logs for debugging/detailed view
     summary += "\n*Detailed Logs:*\n";
+    let details = "";
     for (const res of results) {
         const userId = res.user_id;
         const userName = userMap[userId] ? userMap[userId].name : userId;
         const records = res.records || [];
         if (records.length > 0) {
             const r = records[0]; // Assuming one shift per day for simplicity
-            summary += `- ${userName}: In ${r.check_in_record_id ? '✅' : '❌'} | Out ${r.check_out_record_id ? '✅' : '❌'} (${r.check_in_result}/${r.check_out_result})\n`;
+            details += `- ${userName}: In ${r.check_in_record_id ? '✅' : '❌'} | Out ${r.check_out_record_id ? '✅' : '❌'} (${r.check_in_result}/${r.check_out_result})\n`;
         } else {
-             summary += `- ${userName}: No shift/records\n`;
+             details += `- ${userName}: No shift/records\n`;
         }
     }
+    
+    // Truncate details if too long (max ~2000 chars for safety)
+    if (details.length > 2000) {
+        details = details.substring(0, 2000) + "\n... (truncated)";
+    }
+    summary += details;
 
     console.log('Sending report to Admin...');
     await sendMessage(ADMIN_ID, summary);
