@@ -1,0 +1,9 @@
+{
+  "name": "weather-skill",
+  "version": "1.0.0",
+  "description": "Robust weather fetching with multiple providers",
+  "main": "index.js",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
