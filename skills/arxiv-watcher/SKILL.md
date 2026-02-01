@@ -16,14 +16,15 @@ This skill interacts with the ArXiv API to find and summarize the latest researc
 
 ## Workflow
 
-1. Use `scripts/search_arxiv.sh "<query>"` to get the XML results.
-2. Parse the XML (look for `<entry>`, `<title>`, `<summary>`, and `<link title="pdf">`).
+1. Use `node skills/arxiv-watcher/index.js "<query>" [limit]` to get the JSON results.
+   - Example: `node skills/arxiv-watcher/index.js "cat:cs.AI" 3`
+2. Parse the JSON output (it provides Title, Authors, Summary, and PDF Link).
 3. Present the findings to the user.
 4. **MANDATORY**: Append the title, authors, date, and summary of any paper discussed to `memory/RESEARCH_LOG.md`. Use the format:
    ```markdown
    ### [YYYY-MM-DD] TITLE_OF_PAPER
    - **Authors**: Author List
-   - **Link**: ArXiv Link
+   - **Link**: ArXiv Link (PDF)
    - **Summary**: Brief summary of the paper and its relevance.
    ```
 
@@ -35,4 +36,5 @@ This skill interacts with the ArXiv API to find and summarize the latest researc
 
 ## Resources
 
-- `scripts/search_arxiv.sh`: Direct API access script.
+- `skills/arxiv-watcher/index.js`: Main Node.js script (clean JSON output).
+- `scripts/search_arxiv.sh`: Legacy bash script (raw XML).
