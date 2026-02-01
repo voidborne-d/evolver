@@ -9,20 +9,27 @@ const path = require('path');
 
 const CACHE_DIR = path.join(__dirname, 'cache');
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const EXECUTION_TIMEOUT_MS = 30000; // 30 seconds hard timeout
 
 async function main() {
+  // Set a global watchdog timeout
+  const watchdog = setTimeout(() => {
+    console.log(JSON.stringify({ error: "Execution timed out", status: "timeout" }));
+    process.exit(1);
+  }, EXECUTION_TIMEOUT_MS);
+
   const args = process.argv.slice(2);
   const command = args[0];
   const url = args[1];
   const noCache = args.includes('--no-cache');
 
   if (command !== 'fetch') {
-    console.log("Usage: node index.js fetch <url> [--no-cache]");
+    console.log(JSON.stringify({ error: "Usage: node index.js fetch <url> [--no-cache]", status: "usage_error" }));
     process.exit(1);
   }
 
   if (!url) {
-    console.error("Error: URL is required.");
+    console.log(JSON.stringify({ error: "URL is required", status: "validation_error" }));
     process.exit(1);
   }
 
@@ -33,17 +40,12 @@ async function main() {
     } else {
       // Probabilistic cleanup (10% chance) to prevent infinite growth
       // We do this BEFORE fetching to keep the disk tidy.
-      // We assume other processes aren't racing to read these specific files simultaneously 
-      // in a way that would break (atomic unlink is fine).
       if (Math.random() < 0.1) {
         cleanCache();
       }
     }
 
     // Attempt cache read
-    // We need to parse the token first to get the cache key, but that logic is inside processUrl.
-    // Let's refactor slightly to extract token first? 
-    // Actually, let's just use a hash of the full URL for simplicity and robustness.
     const cacheKey = Buffer.from(url).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
     const cacheFile = path.join(CACHE_DIR, `${cacheKey}.json`);
 
@@ -54,10 +56,10 @@ async function main() {
       if (age < CACHE_TTL_MS) {
         // Cache hit
         const cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        // Add a debug note (optional, but good for transparency)
         cachedData._source = "cache";
         cachedData._cachedAt = stats.mtime;
         console.log(JSON.stringify(cachedData, null, 2));
+        clearTimeout(watchdog);
         return;
       }
     }
@@ -74,8 +76,10 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
 
   } catch (error) {
-    console.error("Error:", error.message);
+    console.log(JSON.stringify({ error: error.message, stack: error.stack, status: "failed" }));
     process.exit(1);
+  } finally {
+    clearTimeout(watchdog);
   }
 }
 
