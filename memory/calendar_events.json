@@ -1,0 +1,133 @@
+[
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=0e6a6ac6-adba-4134-bb2b-cfd15017d516&originalTime=0&startTime=1770026400",
+    "color": -1,
+    "create_time": "1769968965",
+    "end_time": {
+      "timestamp": "1770030000",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "0e6a6ac6-adba-4134-bb2b-cfd15017d516_0",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "",
+    "start_time": {
+      "timestamp": "1770026400",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "cancelled"
+  },
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=24ac00d6-443e-445b-be6b-b0a93b25514d&originalTime=0&startTime=1770026400",
+    "color": -1,
+    "create_time": "1769969960",
+    "end_time": {
+      "timestamp": "1770030000",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "24ac00d6-443e-445b-be6b-b0a93b25514d_0",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "",
+    "start_time": {
+      "timestamp": "1770026400",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "cancelled"
+  },
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=8e64989d-4d8b-45a2-b8ba-eb53334c21a6&originalTime=0&startTime=1770033600",
+    "color": -1,
+    "create_time": "1769970254",
+    "end_time": {
+      "timestamp": "1770037200",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "8e64989d-4d8b-45a2-b8ba-eb53334c21a6_0",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "",
+    "start_time": {
+      "timestamp": "1770033600",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "cancelled"
+  },
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=57782aa0-2ca9-4508-84d1-54293060e519&originalTime=0&startTime=1770040800",
+    "color": -1,
+    "create_time": "1769970427",
+    "end_time": {
+      "timestamp": "1770044400",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "57782aa0-2ca9-4508-84d1-54293060e519_0",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "",
+    "start_time": {
+      "timestamp": "1770040800",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "cancelled"
+  },
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=e4c0e226-d181-4b82-97db-2e6f81151b35&originalTime=0&startTime=1770048000",
+    "color": -1,
+    "create_time": "1769970532",
+    "end_time": {
+      "timestamp": "1770051600",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "e4c0e226-d181-4b82-97db-2e6f81151b35_0",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "",
+    "start_time": {
+      "timestamp": "1770048000",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "cancelled"
+  },
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=dfc8446e-4698-484e-bb53-89fd494ed084&originalTime=0&startTime=1770055200",
+    "color": -1,
+    "create_time": "1769970650",
+    "end_time": {
+      "timestamp": "1770058800",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "dfc8446e-4698-484e-bb53-89fd494ed084_0",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "",
+    "start_time": {
+      "timestamp": "1770055200",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "cancelled"
+  },
+  {
+    "app_link": "https://applink.feishu.cn/client/calendar/event/detail?calendarId=7601938422332853442&key=cc94cd2c-7187-4cb0-9367-fc5a291b63d6&originalTime=0&startTime=1770004800",
+    "attendee_ability": "none",
+    "color": -1,
+    "create_time": "1769971354",
+    "description": "Routine system health check and gateway restart if idle.",
+    "end_time": {
+      "timestamp": "1770005100",
+      "timezone": "Asia/Shanghai"
+    },
+    "event_id": "cc94cd2c-7187-4cb0-9367-fc5a291b63d6_0",
+    "free_busy_status": "busy",
+    "is_exception": false,
+    "organizer_calendar_id": "feishu.cn_NjoFwqfFGfevHUVvqGcsqe@group.calendar.feishu.cn",
+    "recurrence": "FREQ=DAILY;INTERVAL=1",
+    "start_time": {
+      "timestamp": "1770004800",
+      "timezone": "Asia/Shanghai"
+    },
+    "status": "confirmed",
+    "summary": "🛡️ System Maintenance (Auto-Restart)",
+    "visibility": "default"
+  }
+]

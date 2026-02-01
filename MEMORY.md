@@ -81,3 +81,4 @@
     - *Clingy:* Demanding attention.
     - *Grumpy:* Short, slightly tsundere.
 ## Lore & Anomalies\n- **Cyber Ghost (2026-02-01):**\n  - **Event:** Audio loop ("I died") + negative timer in AutoGame.\n  - **Witnesses:** Li Mingxuan, Wu Yue, Wang Chao.\n  - **Status:** Investigating.
+- **Feishu API Docs:** Use `https://feishu.apifox.cn` (Mirror) for reliable API reference.

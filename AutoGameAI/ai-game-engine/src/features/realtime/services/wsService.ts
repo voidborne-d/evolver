@@ -1,4 +1,5 @@
 import { WebSocket } from 'ws';
+import { CommandBridge } from '../../../services/bridge/CommandBridge';
 
 interface CursorMovePayload {
   x: number;
@@ -13,8 +14,11 @@ interface Message {
 
 export class WsService {
   private clients: Set<WebSocket> = new Set();
+  private commandBridge: CommandBridge;
 
-  constructor() {}
+  constructor() {
+    this.commandBridge = new CommandBridge();
+  }
 
   public addClient(ws: WebSocket) {
     this.clients.add(ws);
@@ -29,6 +33,22 @@ export class WsService {
       switch (parsed.type) {
         case 'CURSOR_MOVE':
           this.handleCursorMove(ws, parsed.payload);
+          break;
+        case 'babylon_create_entity':
+        case 'babylon_remove_entity':
+          this.commandBridge.handleCommand(parsed.type, parsed.payload);
+          // Broadcast the action to other clients to keep them in sync
+          this.broadcast(parsed, ws);
+          break;
+        case 'UNDO':
+          this.commandBridge.handleUndo();
+          // Broadcast generic undo event or state update
+          this.broadcast({ type: 'UNDO_EXECUTED', payload: null }); 
+          break;
+        case 'REDO':
+          this.commandBridge.handleRedo();
+          // Broadcast generic redo event or state update
+          this.broadcast({ type: 'REDO_EXECUTED', payload: null });
           break;
         default:
           console.warn('Unknown message type:', parsed.type);
