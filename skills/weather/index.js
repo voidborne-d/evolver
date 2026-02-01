@@ -86,11 +86,12 @@ async function getOpenMeteo(loc) {
         const { latitude, longitude, name, country } = geo;
         
         // 2. Weather
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
+        // Updated to use 'current' parameter for more data (including humidity)
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`;
         const weatherRes = await fetch(weatherUrl, { signal: AbortSignal.timeout(5000) });
         const weatherData = await weatherRes.json();
         
-        const w = weatherData.current_weather;
+        const w = weatherData.current;
         
         // Weather Code Interpretation
         const codes = {
@@ -102,15 +103,15 @@ async function getOpenMeteo(loc) {
             80: 'Rain showers: Slight', 81: 'Rain showers: Moderate', 82: 'Rain showers: Violent',
             95: 'Thunderstorm'
         };
-        const condition = codes[w.weathercode] || `Code ${w.weathercode}`;
+        const condition = codes[w.weather_code] || `Code ${w.weather_code}`;
         
         return {
             source: 'open-meteo',
             location: `${name}, ${country}`,
-            temp_c: w.temperature,
+            temp_c: w.temperature_2m,
             condition: condition,
-            humidity: null, // Open-Meteo current_weather doesn't have humidity by default
-            wind_kmh: w.windspeed
+            humidity: w.relative_humidity_2m,
+            wind_kmh: w.wind_speed_10m
         };
         
     } catch (e) {

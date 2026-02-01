@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { detectMime } = require('./lib/magic');
-const { gifToPng } = require('./lib/convert');
+const { gifToPng, toWebP, extractAudio, videoToGif } = require('./lib/convert');
 
 const args = process.argv.slice(2);
 const action = args[0];
@@ -94,30 +94,42 @@ try {
 
     } else if (action === 'convert') {
         const mime = detectMime(filePath);
+        const formatIndex = args.indexOf('--format');
+        const targetFormat = formatIndex !== -1 ? args[formatIndex + 1] : null;
         
-        if (mime === 'image/gif') {
-            gifToPng(filePath)
-                .then(newPath => {
-                    console.log(JSON.stringify({
-                        original: filePath,
-                        path: newPath,
-                        mime: 'image/png',
-                        converted: true
-                    }));
-                    process.exit(0);
-                })
-                .catch(err => {
-                    console.error(JSON.stringify({ error: err.message }));
-                    process.exit(1);
-                });
-        } else {
-            // Passthrough if not GIF or conversion not needed
+        try {
+            let newPath;
+            if (targetFormat === 'mp3') {
+                newPath = await extractAudio(filePath);
+            } else if (targetFormat === 'gif') {
+                newPath = await videoToGif(filePath);
+            } else if (targetFormat === 'webp') {
+                newPath = await toWebP(filePath);
+            } else if (targetFormat === 'png' && mime === 'image/gif') {
+                newPath = await gifToPng(filePath);
+            } else if (mime === 'image/gif') {
+                // Legacy default
+                newPath = await gifToPng(filePath);
+            } else {
+                console.log(JSON.stringify({ 
+                    path: filePath, 
+                    mime: mime || 'application/octet-stream', 
+                    converted: false,
+                    note: 'No conversion performed (use --format <mp3|gif|webp>)'
+                }));
+                process.exit(0);
+            }
+
             console.log(JSON.stringify({
-                path: filePath,
-                mime: mime || 'application/octet-stream',
-                converted: false
+                original: filePath,
+                path: newPath,
+                mime: targetFormat ? `application/${targetFormat}` : 'image/png', // Rough guess
+                converted: true
             }));
             process.exit(0);
+        } catch(err) {
+            console.error(JSON.stringify({ error: err.message }));
+            process.exit(1);
         }
 
     } else {

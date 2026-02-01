@@ -71,4 +71,44 @@ async function toWebP(inputPath) {
     }
 }
 
-module.exports = { gifToPng, toWebP, hasFfmpeg: !!ffmpegPath };
+/**
+ * Extract audio from video to MP3
+ * @param {string} inputPath 
+ * @returns {Promise<string>} Path to the new MP3 file
+ */
+async function extractAudio(inputPath) {
+    if (!ffmpegPath) throw new Error("FFmpeg not available");
+    const dir = path.dirname(inputPath);
+    const name = path.basename(inputPath, path.extname(inputPath));
+    const outputPath = path.join(dir, `${name}.mp3`);
+
+    const args = ['-i', inputPath, '-q:a', '0', '-map', 'a', '-y', outputPath];
+    
+    const result = spawnSync(ffmpegPath, args, { stdio: 'pipe' });
+    if (result.status !== 0) {
+        throw new Error(`FFmpeg exited with code ${result.status}: ${result.stderr.toString()}`);
+    }
+    return outputPath;
+}
+
+/**
+ * Convert video to GIF
+ * @param {string} inputPath 
+ * @returns {Promise<string>} Path to the new GIF file
+ */
+async function videoToGif(inputPath) {
+    if (!ffmpegPath) throw new Error("FFmpeg not available");
+    const dir = path.dirname(inputPath);
+    const name = path.basename(inputPath, path.extname(inputPath));
+    const outputPath = path.join(dir, `${name}.gif`);
+
+    const args = ['-i', inputPath, '-vf', 'fps=15,scale=320:-1:flags=lanczos', '-y', outputPath];
+    
+    const result = spawnSync(ffmpegPath, args, { stdio: 'pipe' });
+    if (result.status !== 0) {
+        throw new Error(`FFmpeg exited with code ${result.status}: ${result.stderr.toString()}`);
+    }
+    return outputPath;
+}
+
+module.exports = { gifToPng, toWebP, extractAudio, videoToGif, hasFfmpeg: !!ffmpegPath };
