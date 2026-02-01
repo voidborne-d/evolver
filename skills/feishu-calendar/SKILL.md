@@ -1,0 +1,32 @@
+# feishu-calendar
+
+Manage Feishu (Lark) Calendars. Use this skill to list calendars, check schedules, and sync events.
+
+## Usage
+
+### List Calendars
+Check available calendars and their IDs.
+```bash
+node skills/feishu-calendar/list_test.js
+```
+
+### Search Calendar
+Find a calendar by name/summary.
+```bash
+node skills/feishu-calendar/search_cal.js
+```
+
+### Check Master's Calendar
+Specific check for the Master's calendar status.
+```bash
+node skills/feishu-calendar/check_master.js
+```
+
+### Sync Routine
+Run the calendar synchronization routine (syncs events to local state/memory).
+```bash
+node skills/feishu-calendar/sync_routine.js
+```
+
+## Setup
+Requires `FEISHU_APP_ID` and `FEISHU_APP_SECRET` in `.env`.
