@@ -1,9 +1,28 @@
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const { getAllUsers, getAttendance, sendMessage } = require('./lib/api');
+const fs = require('fs');
+const path = require('path');
 
 // Allow overriding Admin ID via env var, fallback to Master's ID
 const ADMIN_ID = process.env.FEISHU_ADMIN_ID || 'ou_cdc63fe05e88c580aedead04d851fc04';
+
+// Cache Logic
+const CACHE_DIR = path.resolve(__dirname, '../../memory/attendance_cache');
+if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+function getHolidayCache(date) {
+    const file = path.join(CACHE_DIR, `holiday_${date}.json`);
+    if (fs.existsSync(file)) {
+        try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {}
+    }
+    return null;
+}
+
+function saveHolidayCache(date, data) {
+    const file = path.join(CACHE_DIR, `holiday_${date}.json`);
+    try { fs.writeFileSync(file, JSON.stringify(data)); } catch (e) {}
+}
 
 async function main() {
   const argv = yargs(hideBin(process.argv))
@@ -56,15 +75,23 @@ async function main() {
   
   try {
       console.log('Checking holiday status...');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+      
+      let holidayData = getHolidayCache(dateStr);
+      if (holidayData) {
+          console.log('Using cached holiday data.');
+      } else {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-      const holidayRes = await fetch(`https://timor.tech/api/holiday/info/${dateStr}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
+          const holidayRes = await fetch(`https://timor.tech/api/holiday/info/${dateStr}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
 
-      if (!holidayRes.ok) throw new Error(`HTTP ${holidayRes.status}`);
+          if (!holidayRes.ok) throw new Error(`HTTP ${holidayRes.status}`);
 
-      const holidayData = await holidayRes.json();
+          holidayData = await holidayRes.json();
+          saveHolidayCache(dateStr, holidayData);
+      }
+
       // type: 0=workday, 1=weekend, 2=holiday, 3=makeup
       if (holidayData && holidayData.type) {
           const type = holidayData.type.type;

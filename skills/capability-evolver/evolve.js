@@ -218,6 +218,23 @@ async function run() {
     const cycleNum = getNextCycleId();
     const cycleId = `Cycle #${cycleNum}`;
     
+    // Reporting Directive Logic
+    let reportingDirective = `3.  **📝 REPORT**:
+    - Use \`message\` tool.
+    - **Title**: 🧬 Evolution ${cycleId}
+    - **Status**: [SUCCESS]
+    - **Changes**: Detail exactly what was improved.`;
+
+    if (process.env.EVOLVE_REPORT_TOOL === 'feishu-card') {
+        reportingDirective = `3.  **📝 REPORT (MANDATORY)**:
+    - You **MUST** use the \`feishu-card\` skill (NOT the generic \`message\` tool).
+    - **Command**:
+      \`\`\`bash
+      node skills/feishu-card/send.js --title "🧬 Evolution ${cycleId} Completed" --color purple --text "Status: [SUCCESS]\\nChanges: ... (Describe changes)"
+      \`\`\`
+    - **Target**: Auto-detects context.`;
+    }
+
     // 2. Detect Workspace State (Enhanced Skill Map)
     let fileList = '';
     const skillsDir = path.resolve(__dirname, '../../skills');
@@ -326,11 +343,7 @@ ${mutation}
     - **Mode C (Expand)**: Create a tool.
     - **Mode D (Innovation)**: (If Mutation Active) Solve a recurring problem in a new way.
 
-3.  **📝 REPORT**:
-    - Use \`message\` tool.
-    - **Title**: 🧬 Evolution ${cycleId}
-    - **Status**: [SUCCESS]
-    - **Changes**: Detail exactly what was improved.
+${reportingDirective}
 
 4.  **💾 PERSIST & SPREAD (TRIPLE SYNC)**:
     - **Step A (Local)**: Save all file changes.

@@ -1,8 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { program } = require('commander');
-const FormData = require('form-data');
+const os = require('os');
 const { execSync, spawnSync } = require('child_process');
 // Try to resolve ffmpeg-static from workspace root
 let ffmpegPath;
@@ -111,8 +107,9 @@ async function sendSticker(options) {
     const token = await getToken();
     const stickerDir = process.env.STICKER_DIR 
         ? path.resolve(process.env.STICKER_DIR) 
-        : path.resolve(path.join(process.env.HOME || '/home/crishaocredits', '.openclaw/media/stickers'));
+        : path.resolve(path.join(os.homedir(), '.openclaw/media/stickers'));
     let selectedFile;
+    let isTempFile = false; // Track if we created a temp file to clean up
 
     if (options.file) {
         selectedFile = path.resolve(options.file);
@@ -144,10 +141,6 @@ async function sendSticker(options) {
         console.log('Detected GIF. Converting to WebP (Efficiency Protocol)...');
         const webpPath = selectedFile.replace(/\.gif$/i, '.webp');
         try {
-            // -loop 0 ensures animation loops are preserved
-            // -c:v libwebp, -lossless 0 (lossy), -q:v 75 (quality), -an (remove audio)
-            // -vsync 0 prevents frame duplication issues
-            // -vf "scale='min(320,iw)':-1" to downscale huge gifs while keeping aspect ratio
             const ffmpegArgs = [
                 '-i', selectedFile,
                 '-c:v', 'libwebp',
@@ -156,7 +149,7 @@ async function sendSticker(options) {
                 '-loop', '0',
                 '-an',
                 '-vsync', '0', 
-                '-vf', 'scale=\'min(320,iw)\':-2', // Downscale safely if width > 320, keeping even dims
+                '-vf', 'scale=\'min(320,iw)\':-2',
                 '-y',
                 webpPath
             ];
@@ -203,11 +196,7 @@ async function sendSticker(options) {
                     if (newStats.size < stats.size && newStats.size < LIMIT_BYTES) {
                         console.log(`[Compression] Success: ${(newStats.size/1024/1024).toFixed(2)}MB.`);
                         selectedFile = compressedPath;
-                        // It's a temp file, so we might want to clean it up later?
-                        // But standard upload logic needs it.
-                        // We can leave it for now, or add cleanup logic after upload.
-                        // To keep it simple, we leave it (OS usually handles /tmp but this is in sticker dir).
-                        // Better: Delete after upload.
+                        isTempFile = true; // Mark for deletion
                     } else {
                          console.warn('[Compression] Failed to reduce size below limit.');
                          try { fs.unlinkSync(compressedPath); } catch(e) {}
@@ -231,49 +220,53 @@ async function sendSticker(options) {
         } catch (e) {
             console.warn(`[Cache Warning] Corrupt cache file detected: ${e.message}`);
             try {
-                // Backup corrupt file to prevent total data loss
                 const backupPath = cachePath + '.corrupt.' + Date.now();
                 fs.copyFileSync(cachePath, backupPath);
-                console.warn(`[Cache Warning] Backed up corrupt cache to ${backupPath}`);
-            } catch (backupErr) {
-                console.error('[Cache Error] Failed to backup corrupt cache:', backupErr.message);
-            }
-            // Proceed with empty cache (safe default), but original data is saved
+            } catch (backupErr) {}
         }
     }
 
-    // Calculate file hash for deduplication and content validation
+    // Calculate file hash
     const fileBuffer = fs.readFileSync(selectedFile);
     const fileHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
-
-    // Check cache by Hash (Primary) or Filename (Legacy Fallback)
     const fileName = path.basename(selectedFile);
     let imageKey = cache[fileHash] || cache[fileName];
 
     if (!imageKey) {
         console.log(`Uploading image (Hash: ${fileHash.substring(0, 8)})...`);
-        imageKey = await uploadImage(token, selectedFile);
-        if (imageKey) {
-            // Save with both keys for backward compatibility and robustness
-            cache[fileHash] = imageKey;
-            // Also cache by filename to maintain legacy lookup speed if needed, but hash is preferred
-            cache[fileName] = imageKey;
-            
-            // Atomic write to prevent corruption
-            const tempPath = `${cachePath}.tmp`;
-            try {
-                fs.writeFileSync(tempPath, JSON.stringify(cache, null, 2));
-                fs.renameSync(tempPath, cachePath);
-            } catch (writeErr) {
-                console.warn('Warning: Failed to write cache atomically:', writeErr.message);
-                // Fallback to direct write if rename fails (e.g. cross-device link)
+        try {
+            imageKey = await uploadImage(token, selectedFile);
+            if (imageKey) {
+                cache[fileHash] = imageKey;
+                cache[fileName] = imageKey;
                 try {
-                     fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
-                } catch (e) {}
+                    const tempPath = `${cachePath}.tmp`;
+                    fs.writeFileSync(tempPath, JSON.stringify(cache, null, 2));
+                    fs.renameSync(tempPath, cachePath);
+                } catch (writeErr) {}
+            }
+        } finally {
+            // CLEANUP: Delete temp file if we created it during compression
+            if (isTempFile && fs.existsSync(selectedFile)) {
+                try {
+                    fs.unlinkSync(selectedFile);
+                    console.log(`[Cleanup] Deleted temporary compressed file: ${path.basename(selectedFile)}`);
+                } catch (cleanupErr) {
+                    console.warn(`[Cleanup Warning] Failed to delete temp file: ${cleanupErr.message}`);
+                }
             }
         }
     } else {
         console.log(`Using cached image_key (Hash: ${fileHash.substring(0, 8)})`);
+        // If we used a cached key, but `selectedFile` was a temp compressed file, we still need to delete it!
+        // Because we didn't call uploadImage (which has the finally block if we put it there),
+        // we must clean up here too.
+        if (isTempFile && fs.existsSync(selectedFile)) {
+             try {
+                 fs.unlinkSync(selectedFile);
+                 console.log(`[Cleanup] Deleted temporary compressed file (Cache Hit): ${path.basename(selectedFile)}`);
+             } catch (cleanupErr) {}
+        }
     }
 
     // Determine receive_id_type
