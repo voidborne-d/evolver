@@ -106,6 +106,9 @@ async function sendSticker(options) {
         console.log('Detected GIF. Converting to WebP (Efficiency Protocol)...');
         const webpPath = selectedFile.replace(/\.gif$/i, '.webp');
         try {
+            // -loop 0 ensures animation loops are preserved
+            // -c:v libwebp, -lossless 0 (lossy), -q:v 75 (quality), -an (remove audio)
+            // -vsync 0 prevents frame duplication issues
             execSync(`${ffmpegPath} -i "${selectedFile}" -c:v libwebp -lossless 0 -q:v 75 -loop 0 -an -vsync 0 -y "${webpPath}"`, { stdio: 'pipe' });
             
             if (fs.existsSync(webpPath)) {
