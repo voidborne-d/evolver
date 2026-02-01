@@ -9,23 +9,72 @@ const APP_ID = process.env.FEISHU_APP_ID;
 const APP_SECRET = process.env.FEISHU_APP_SECRET;
 const TOKEN_CACHE_FILE = path.resolve(__dirname, '../../memory/feishu_token.json');
 const IMAGE_KEY_CACHE_FILE = path.resolve(__dirname, '../../memory/feishu_image_keys.json');
+const STATS_FILE = path.resolve(__dirname, '../../memory/feishu_card_stats.json');
+
+// Helper: Update Telemetry Stats
+function updateStats(type, details = null) {
+    try {
+        let stats = { total_sent: 0, success_card: 0, success_fallback: 0, failed: 0, last_updated: 0 };
+        if (fs.existsSync(STATS_FILE)) {
+            try { stats = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8')); } catch (e) {}
+        }
+        
+        stats.total_sent++;
+        stats.last_updated = Date.now();
+
+        if (type === 'card_success') stats.success_card++;
+        if (type === 'fallback_success') {
+            stats.success_fallback++;
+            stats.last_fallback_reason = details;
+            stats.last_fallback_time = Date.now();
+        }
+        if (type === 'failure') {
+            stats.failed++;
+            stats.last_failure = details;
+            stats.last_failure_time = Date.now();
+        }
+
+        fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+    } catch (e) {
+        // Silently fail on stats to not break main flow
+    }
+}
 
 if (!APP_ID || !APP_SECRET) {
     console.error('Error: FEISHU_APP_ID or FEISHU_APP_SECRET not set.');
     process.exit(1);
 }
 
-// Helper: Fetch with exponential backoff retry
+// Helper: Fetch with smart retry (retries only on network/server errors)
 async function fetchWithRetry(url, options, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const res = await fetch(url, options);
-            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-            return res;
+            
+            // Success: 2xx
+            if (res.ok) return res;
+
+            // Client Error (4xx): Do NOT retry (except 429)
+            if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+                // Return response immediately so caller can handle the error logic (e.g. read body)
+                // or throw immediately to trigger fallback if that's the strategy.
+                // In this script, we usually want to throw so sendCard catches it.
+                throw new Error(`HTTP ${res.status} ${res.statusText} (Client Error - No Retry)`);
+            }
+
+            // Server Error (5xx) or Rate Limit (429): Retry
+            throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
         } catch (e) {
+            // Don't retry if we explicitly said "No Retry" (Client Error)
+            if (e.message.includes('(Client Error - No Retry)')) {
+                throw e;
+            }
+
             if (i === retries - 1) throw e;
+            
             const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
-            console.warn(`Fetch failed (${e.message}). Retrying in ${delay}ms...`);
+            console.warn(`[Fetch] Attempt ${i+1}/${retries} failed: ${e.message}. Retrying in ${delay}ms...`);
             await new Promise(r => setTimeout(r, delay));
         }
     }

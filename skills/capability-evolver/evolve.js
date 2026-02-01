@@ -130,7 +130,10 @@ Focus on reliability, bug fixing, and documentation. Consolidate gains.
 }
 
 const STATE_FILE = path.join(MEMORY_DIR, 'evolution_state.json');
-const MEMORY_FILE = path.join(MEMORY_DIR, 'MEMORY.md');
+// Fix: Look for MEMORY.md in root first, then memory dir to support both layouts
+const ROOT_MEMORY = path.resolve(__dirname, '../../MEMORY.md');
+const DIR_MEMORY = path.join(MEMORY_DIR, 'MEMORY.md');
+const MEMORY_FILE = fs.existsSync(ROOT_MEMORY) ? ROOT_MEMORY : DIR_MEMORY;
 
 function readMemorySnippet() {
     try {
