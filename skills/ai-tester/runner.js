@@ -25,7 +25,7 @@ export class AITester {
             this.provider = 'gemini';
             this.apiKey = process.env.GEMINI_API_KEY;
             this.genAI = new GoogleGenerativeAI(this.apiKey);
-            this.modelName = options.model || 'gemini-1.5-flash';
+            this.modelName = options.model || 'gemini-2.0-flash';
         } else if (process.env.OPENAI_API_KEY) {
             this.provider = 'openai';
             this.openai = new OpenAI({

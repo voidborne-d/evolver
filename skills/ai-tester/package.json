@@ -1,6 +1,6 @@
 {
   "name": "ai-tester",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-driven E2E testing skill using Playwright and LLM vision",
   "main": "index.js",
   "type": "module",
