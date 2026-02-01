@@ -475,7 +475,28 @@ function getAutoTarget() {
         }
     } catch (e) {}
     
-    // 5. Master ID (Last Resort)
+    // 5. Parse USER.md for Master ID (Robust Fallback)
+    try {
+        const userMdPath = path.resolve(__dirname, '../../USER.md');
+        if (fs.existsSync(userMdPath)) {
+            const userMd = fs.readFileSync(userMdPath, 'utf8');
+            // Regex to find "Feishu ID: `ou_...`" under "Owner" or "Master" section
+            // Simple approach: Look for "Master" or "Owner" then the next Feishu ID
+            const masterMatch = userMd.match(/(?:Master|Owner).*?Feishu ID:.*?`(ou_[a-z0-9]+)`/s);
+            if (masterMatch && masterMatch[1]) {
+                console.log(`[Feishu-Card] Target Source: USER.md (Master: ${masterMatch[1]})`);
+                return masterMatch[1];
+            }
+            // Fallback: Just find the first "ou_" ID in the file if specific Master tag fails
+            const firstOu = userMd.match(/`(ou_[a-z0-9]+)`/);
+            if (firstOu && firstOu[1]) {
+                 console.log(`[Feishu-Card] Target Source: USER.md (First Found: ${firstOu[1]})`);
+                 return firstOu[1];
+            }
+        }
+    } catch (e) {}
+    
+    // 6. Master ID (Env Fallback)
     if (process.env.MASTER_ID) return process.env.MASTER_ID;
 
     return null;
