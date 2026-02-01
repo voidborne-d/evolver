@@ -209,7 +209,8 @@ async function sendSticker(options) {
     }
 
     // Caching (Enhanced with MD5 Hash)
-    const cachePath = path.join(__dirname, 'image_key_cache.json');
+    // Unified Cache: Use the shared memory file (same as feishu-card) to prevent duplicate uploads
+    const cachePath = path.resolve(__dirname, '../../memory/feishu_image_keys.json');
     let cache = {};
     if (fs.existsSync(cachePath)) {
         try {
