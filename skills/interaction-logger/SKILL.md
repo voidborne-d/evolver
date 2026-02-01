@@ -21,3 +21,8 @@ node skills/interaction-logger/log.js --target <target_alias> --role <role> --co
 - **Safety**: Prevents JSON syntax errors from manual editing.
 - **Convenience**: One-line command vs multi-step read/edit/write.
 - **Compliance**: Ensures mandatory logging rules (from MEMORY.md) are actually followed.
+
+## Features
+- **Atomic Writes**: Uses `.tmp` file + rename to prevent corruption on crash.
+- **Log Rotation**: Automatically rotates log files when they exceed 5MB to `filename_YYYY-MM-DD-HHmmss.json`.
+- **Dynamic Targets**: Auto-creates log files for new users in `memory/users/`.

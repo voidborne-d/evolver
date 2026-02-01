@@ -56,6 +56,24 @@ if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
 }
 
+// Log Rotation (Stability Guard)
+const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB
+if (fs.existsSync(absolutePath)) {
+    try {
+        const stats = fs.statSync(absolutePath);
+        if (stats.size > MAX_LOG_SIZE) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const parsedPath = path.parse(absolutePath);
+            const archivePath = path.join(parsedPath.dir, `${parsedPath.name}_${timestamp}${parsedPath.ext}`);
+            fs.renameSync(absolutePath, archivePath);
+            console.log(`Log file too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Rotated to: ${archivePath}`);
+            // File is now gone, so we start fresh below
+        }
+    } catch (e) {
+        console.error("Rotation check failed:", e.message);
+    }
+}
+
 // Read or Initialize
 let data = { sessions: [] };
 if (fs.existsSync(absolutePath)) {
