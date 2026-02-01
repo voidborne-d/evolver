@@ -11,6 +11,30 @@ const ADMIN_ID = process.env.FEISHU_ADMIN_ID || 'ou_cdc63fe05e88c580aedead04d851
 const CACHE_DIR = path.resolve(__dirname, '../../memory/attendance_cache');
 if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
+// --- Cache Helpers ---
+const USER_CACHE_FILE = path.join(CACHE_DIR, 'users_cache.json');
+
+async function getAllUsersCached() {
+    try {
+        if (fs.existsSync(USER_CACHE_FILE)) {
+            const stat = fs.statSync(USER_CACHE_FILE);
+            const age = Date.now() - stat.mtimeMs;
+            if (age < 24 * 60 * 60 * 1000) { // 24h TTL
+                 console.log(`Using cached user list (${Math.floor(age/1000/60)} min old).`);
+                 return JSON.parse(fs.readFileSync(USER_CACHE_FILE, 'utf8'));
+            }
+        }
+    } catch(e) {}
+    
+    // Fetch fresh
+    console.log('Fetching fresh user list...');
+    const users = await getAllUsers();
+    
+    // Write cache
+    try { fs.writeFileSync(USER_CACHE_FILE, JSON.stringify(users)); } catch(e) { console.warn('Failed to cache users:', e.message); }
+    return users;
+}
+
 function getHolidayCache(date) {
     const file = path.join(CACHE_DIR, `holiday_${date}.json`);
     if (fs.existsSync(file)) {
@@ -116,8 +140,7 @@ async function main() {
 
   try {
     // 1. Get all users
-    console.log('Fetching users...');
-    const users = await getAllUsers();
+    const users = await getAllUsersCached();
     console.log(`Found ${users.length} users.`);
     const userMap = {};
     users.forEach(u => userMap[u.open_id] = u); // Map open_id to user details
