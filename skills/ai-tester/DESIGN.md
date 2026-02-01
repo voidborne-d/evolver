@@ -77,6 +77,10 @@ await ai.verify('The error message should be red and annoying');
 3.  **Action Mapper**: Map LLM JSON output `{"action": "click", "target": "button[name='buy']"}` to `page.locator(...)`.
 4.  **Loop**: Build the recursive run loop.
 
+## Environment Requirements
+- **Backend**: AutoGameAI (WebSocket) must be running on port **7314** (local) for E2E tests.
+- **Frontend**: Must be accessible via URL (configured in test runner).
+
 ## Roadmap
 - [ ] v0.1: Single step execution (Text -> Action).
 - [ ] v0.2: Visual Verification (Screenshot -> Bool).

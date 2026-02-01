@@ -1,7 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { WsService } from './features/realtime/services/wsService';
 
-const port = 8080;
+const port = 7314;
 const wss = new WebSocketServer({ port });
 const wsService = new WsService();
 
