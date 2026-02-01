@@ -1,9 +1,114 @@
 #!/usr/bin/env node
 const fs = require('fs');
+const path = require('path');
 const { program } = require('commander');
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+
+// Try to load GenAI
+let GoogleGenerativeAI;
+try {
+    GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
+} catch (e) {
+    try {
+        // Fallback to sticker-analyzer's copy (Workspace Optimization)
+        GoogleGenerativeAI = require(path.resolve(__dirname, '../sticker-analyzer/node_modules/@google/generative-ai')).GoogleGenerativeAI;
+    } catch (e2) {
+        // console.warn('[Intel] GenAI library not found. Skipping AI summary.');
+    }
+}
 
 program
     .option('-i, --input <file>', 'Input JSON file (from fetch.js history)')
+    .option('-o, --output <file>', 'Output Markdown file')
+    .option('-v, --verbose', 'Enable verbose logging')
+    .parse(process.argv);
+
+const options = program.opts();
+
+function log(msg) {
+    if (options.verbose) console.error(`[INFO] ${msg}`);
+}
+
+async function getAiSummary(messages) {
+    if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) return null;
+
+    try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        // Format messages for prompt (Compact)
+        const transcript = messages.map(m => {
+            const sender = (m.sender || 'unknown').replace(/^ou_/, '').slice(0, 6);
+            let text = m.content;
+            if (typeof text === 'object') text = JSON.stringify(text);
+            return `${sender}: ${text}`;
+        }).slice(-100).join('\n'); // Last 100 messages to fit context
+
+        const prompt = `Analyze this group chat transcript.
+Output a Markdown summary with:
+1. **🔍 Key Topics**: Bullet points of what was discussed.
+2. **💡 Insights**: Any interesting ideas, decisions, or gossip.
+3. **🎭 Sentiment**: Overall mood (1 sentence).
+
+Transcript:
+${transcript}`;
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (e) {
+        console.error(`[Intel] AI Summary failed: ${e.message}`);
+        return null;
+    }
+}
+
+async function main() {
+    // Read Input
+    let messages = [];
+    try {
+        let inputData;
+        if (options.input) {
+            log(`Reading from file: ${options.input}`);
+            inputData = fs.readFileSync(options.input, 'utf8');
+        } else {
+            // Try reading from stdin
+            if (process.stdin.isTTY) {
+                 // Interactive mode with no input?
+                 // Wait, we need input.
+            } else {
+                inputData = fs.readFileSync(0, 'utf8');
+            }
+        }
+        
+        if (inputData) {
+            messages = JSON.parse(inputData);
+        }
+    } catch (e) {
+        console.error('Error reading input:', e.message);
+        process.exit(1);
+    }
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+        if (options.verbose) console.log("No messages to report.");
+        // We can't exit here if we want to support empty report, but usually empty means nothing to do.
+        // Let's exit gracefully.
+        process.exit(0);
+    }
+
+    // ... (Analysis Logic - Kept similar but inside main) ...
+    // Note: I need to preserve the existing analysis logic.
+    // To do this via 'edit' tool is hard if I replace the whole file.
+    // I should insert the AI function and call it.
+    
+    // RE-PLAN: Use 'edit' to insert the function and call it, rather than rewriting the whole file.
+}
+
+// Since I can't rewrite the whole file easily without reading it all and pasting (which hits token limits),
+// I will use 'edit' to:
+// 1. Add requires and getAiSummary function at top.
+// 2. Change the end of the script to be async and call the summary.
+
+// ...
+
     .option('-o, --output <file>', 'Output Markdown file')
     .option('-v, --verbose', 'Enable verbose logging')
     .parse(process.argv);

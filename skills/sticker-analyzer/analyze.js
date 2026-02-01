@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto"); // Added for optimization
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 // Optimization: Cleaner FFmpeg resolution
 let ffmpegPath;
@@ -25,7 +25,10 @@ if (!API_KEY) {
     process.exit(1);
 }
 
-const STICKER_DIR = process.env.STICKER_DIR || "/home/crishaocredits/.openclaw/media/stickers";
+const STICKER_DIR = process.env.STICKER_DIR 
+    ? path.resolve(process.env.STICKER_DIR)
+    : path.resolve(path.join(process.env.HOME || '/home/crishaocredits', '.openclaw/media/stickers'));
+
 if (!fs.existsSync(STICKER_DIR)) {
     console.log(`Creating sticker directory: ${STICKER_DIR}`);
     fs.mkdirSync(STICKER_DIR, { recursive: true });
@@ -148,13 +151,31 @@ async function analyzeFile(file, index) {
             console.log(`[ CONVERT ] ${file} -> WebP`);
             try {
                 // Optimized ffmpeg args: lower quality is fine for analysis, faster speed
-                execSync(`${ffmpegPath} -i "${filePath}" -c:v libwebp -lossless 0 -q:v 60 -loop 0 -an -vsync 0 -y "${webpPath}"`, { stdio: 'ignore' });
+                // Using spawnSync for safety and better arg handling
+                const args = [
+                    '-i', filePath,
+                    '-c:v', 'libwebp',
+                    '-lossless', '0',
+                    '-q:v', '60',
+                    '-loop', '0',
+                    '-an',
+                    '-vsync', '0',
+                    '-vf', 'scale=\'min(320,iw)\':-2', // Downscale for faster analysis
+                    '-y',
+                    webpPath
+                ];
+                
+                const result = spawnSync(ffmpegPath, args, { stdio: 'ignore' });
+                
+                if (result.error) throw result.error;
                 
                 if (fs.existsSync(webpPath)) {
                     // Check if we can safely delete original. 
                     // Policy: Keep original if conversion was for analysis only? 
                     // No, previous logic deleted it. We'll stick to that to save space.
-                    fs.unlinkSync(filePath); 
+                    try {
+                        fs.unlinkSync(filePath); 
+                    } catch(e) {}
                     filePath = webpPath;
                     currentFile = path.basename(webpPath);
                     mimeType = "image/webp";
