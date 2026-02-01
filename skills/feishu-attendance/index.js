@@ -12,6 +12,17 @@ async function main() {
       description: 'Date to check (YYYY-MM-DD)',
       default: new Date().toISOString().split('T')[0]
     })
+    .option('notify', {
+      alias: 'n',
+      type: 'boolean',
+      description: 'Send DM notifications to users (Default: false)',
+      default: false
+    })
+    .option('dry-run', {
+      type: 'boolean',
+      description: 'Do not send any messages (even to Admin)',
+      default: false
+    })
     .command('check', 'Check attendance and notify')
     .help()
     .argv;
@@ -133,25 +144,25 @@ async function main() {
         }
       }
 
-      // Prepare messages (Only send if !safeMode)
+      // Prepare messages (Only send if enabled and safe)
       if (isAbsent) {
         report.absent.push(userName);
         console.log(`[Absent] ${userName}`);
-        if (!safeMode) {
+        if (!safeMode && argv.notify && !argv.dryRun) {
             await sendMessage(userId, `[Attendance Alert] You are marked as ABSENT for ${dateStr}. Please submit a request if this is an error.`);
         }
       } else {
         if (isLate) {
           report.late.push(userName);
           console.log(`[Late] ${userName}`);
-          if (!safeMode) {
+          if (!safeMode && argv.notify && !argv.dryRun) {
               await sendMessage(userId, `[Attendance Alert] You were LATE on ${dateStr}. Please be on time.`);
           }
         }
         if (isEarly) {
           report.early.push(userName);
           console.log(`[Early] ${userName}`);
-          if (!safeMode) {
+          if (!safeMode && argv.notify && !argv.dryRun) {
              await sendMessage(userId, `[Attendance Alert] You left EARLY on ${dateStr}.`);
           }
         }
@@ -161,6 +172,7 @@ async function main() {
     // 4. Report to Admin
     let summary = `📋 *Attendance Report (${dateStr})*\nType: ${dayType} ${!isWorkday ? '(No Absent Checks)' : ''}\nTotal Checked: ${report.total}\n`;
     if (holidayCheckWarning) summary += `${holidayCheckWarning}\n`;
+    if (argv.dryRun) summary += `\n(DRY RUN: No messages sent)\n`;
     summary += `\n`;
 
     if (report.late.length > 0) summary += `🔴 *Late*:\n${report.late.join(', ')}\n\n`;
@@ -193,7 +205,12 @@ async function main() {
     summary += details;
 
     console.log('Sending report to Admin...');
-    await sendMessage(ADMIN_ID, summary);
+    if (!argv.dryRun) {
+        await sendMessage(ADMIN_ID, summary);
+        console.log('Report sent.');
+    } else {
+        console.log('DRY RUN: Report NOT sent.');
+    }
     console.log('Done.');
     console.log(JSON.stringify(report, null, 2));
 
