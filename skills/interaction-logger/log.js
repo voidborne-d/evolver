@@ -105,12 +105,55 @@ const entry = {
 // Append
 data.sessions.push(entry);
 
+// Helper: Update Global Context
+function updateGlobalContext(user, chat = null) {
+    const contextPath = path.resolve(__dirname, '../../memory/context.json');
+    let context = {};
+    
+    try {
+        if (fs.existsSync(contextPath)) {
+            context = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+        }
+    } catch (e) {}
+
+    // Update fields
+    if (user) context.last_active_user = user;
+    if (chat) context.last_active_chat = chat;
+    context.last_updated = Date.now();
+
+    // Write Atomic
+    try {
+        const tempPath = contextPath + '.tmp';
+        fs.writeFileSync(tempPath, JSON.stringify(context, null, 2));
+        fs.renameSync(tempPath, contextPath);
+    } catch (e) {
+        console.error(`Failed to update context.json: ${e.message}`);
+    }
+}
+
 // Write Atomic-ish (Write to temp, then rename)
 const tempPath = absolutePath + '.tmp';
 try {
     fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
     fs.renameSync(tempPath, absolutePath);
     console.log(`Successfully logged to ${filePath} (Atomic Write)`);
+    
+    // Update Context if this was a User message
+    if (config.role === 'user') {
+        // If target is an ID (ou_...), use it. If alias, we might not know the ID.
+        // But assuming target IS the ID for new dynamic targets.
+        // Also check for new --chat-id arg if passed (future proofing)
+        let userId = config.target;
+        let chatId = config.chatId || config['chat-id']; // Handle both casings
+
+        // If target is an alias like 'zhy', we might not want to put 'zhy' as the ID?
+        // But for now, let's just log it. feishu-card might not like 'zhy', but 'ou_...' works.
+        // We only update context if it LOOKS like an ID or we are sure.
+        if (userId.startsWith('ou_') || userId.startsWith('oc_')) {
+             updateGlobalContext(userId, chatId);
+        }
+    }
+
 } catch (e) {
     console.error("Error writing file:", e.message);
     // Try to clean up temp file if it exists

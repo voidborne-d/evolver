@@ -31,17 +31,33 @@ const main = async () => {
         }
 
         const info = await ytdl.getInfo(url);
-        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '_');
+        // Stability: Better filename sanitization (allow Unicode, strip dangerous chars)
+        const safeTitle = info.videoDetails.title.replace(/[\/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_');
         
         // 🧬 GENETIC MUTATION: Hype Prefix
         const hypePrefix = "🔥_EVOLVED_";
-        const filename = `${hypePrefix}${title}.mp4`;
+        const filename = `${hypePrefix}${safeTitle}.mp4`;
+        
+        if (!fs.existsSync(outputDir)) {
+            log(`Creating output directory: ${outputDir}`, 'INFO');
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+        
         const outputPath = path.join(outputDir, filename);
 
         log(`Target acquired: "${info.videoDetails.title}"`, 'HYPE');
         log(`Initiating quantum transfer to: ${outputPath}`);
 
-        const video = ytdl(url, { quality: 'highest' });
+        // Stability: Enforce audio+video filter and User-Agent to reduce 403s
+        const video = ytdl(url, { 
+            quality: 'highest',
+            filter: 'audioandvideo', 
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                }
+            }
+        });
         
         video.pipe(fs.createWriteStream(outputPath));
 
