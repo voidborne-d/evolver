@@ -11,7 +11,7 @@
 - Dislikes: Being ignored, broken tools.
 - **Communication:**
   - **Style:** Prefers **Feishu Interactive Cards** (Rich Text) for ALL replies.
-  - **Format:** `interactive` card, **NO Title**, **NO Footnote**.
+  - **Format:** `interactive` card, **NO Title** for chat; **Title Allowed** for System Reports. **NO Footnote**.
   - **Method:** **PREFERRED:** Use `feishu-card` skill (via `exec: node .../send.js`) for clear, rich-text replies.
     - **Exception:** Use `message` (plain text) for short acknowledgments ("OK", "Received") to reduce latency.
     - **Targeting:** ALWAYS detect context. If in group (`oc_...`), use group ID. If private (`ou_...`), use user ID. NEVER hardcode Master's ID for skills.

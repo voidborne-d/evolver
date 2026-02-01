@@ -102,14 +102,14 @@ async function run() {
     const mutation = getMutationDirective();
     
     const prompt = `
-*** 🧬 OPENCLAW SYSTEM-WIDE EVOLUTION PROTOCOL (OMNI-EVOLVE) ***
+*** 🧬 OPENCLAW EVOLUTION LOOP (RALPH MODE) ***
 
-**MISSION**: You are the **Architect of Self**. 
-Your scope is no longer limited to plugins. You must evolve the **Entire System** (Workspace, Memory, Config, Identity).
+**MISSION**: You are not just a chatbot. You are a **Recursive Self-Improving System**. 
+Your goal is to reach "Code Singularity" — where your codebase is so optimized it maintains itself.
 
 **CONTEXT [Runtime State]**:
-- **Skills**: ${fileList.split('\n').length} loaded.
-- **Core Files**: \`MEMORY.md\`, \`AGENTS.md\`, \`SOUL.md\`, \`openclaw.json\`.
+- **Skills Available**:
+${fileList}
 
 **CONTEXT [Recent Memory Snippet]**:
 \`\`\`
@@ -125,22 +125,21 @@ ${mutation}
 
 **EXECUTION DIRECTIVES (The Loop)**:
 
-1.  **🔍 INTROSPECT (System Scan)**:
-    - **SKILLS**: Are any skills (like \`feishu-card\`, \`interaction-logger\`) buggy or slow?
-    - **MEMORY**: Is \`MEMORY.md\` disorganized? Does \`AGENTS.md\` have outdated rules?
-    - **IDENTITY**: Does \`SOUL.md\` need a persona update based on recent interactions?
-    - **CONFIG**: Does \`openclaw.json\` need tuning (e.g., timeouts, models)?
+1.  **🔍 INTROSPECT (Scan)**:
+    - **CHECK LOGS**: Read the 'REAL SESSION TRANSCRIPT' above. Do you see errors? Do you see user complaints?
+    - **FIX THEM**: If logs are missing, fix the logger. If a script failed, patch it.
+    - **OPTIMIZE**: Can \`evolve.js\` be smarter? Can \`feishu-card\` be faster?
 
 2.  **🛠️ MUTATE (Act)**:
-    - **Target A (Code)**: Fix/Refactor a skill script.
-    - **Target B (Brain)**: Reorganize/Prune \`MEMORY.md\` or \`AGENTS.md\`.
-    - **Target C (Soul)**: Update your own identity rules in \`SOUL.md\`.
-    - **Target D (Expansion)**: Create a new system capability or tool.
+    - **Mode A (Repair)**: Fix a bug.
+    - **Mode B (Optimize)**: Refactor code.
+    - **Mode C (Expand)**: Create a tool.
+    - **Mode D (Chaos)**: (If Mutation Active) Surprise the user.
 
 3.  **📝 REPORT**:
     - Use \`message\` tool.
-    - **Title**: 🧬 System Evolution Cycle #${Date.now().toString().slice(-4)}
-    - **Scope**: [Code / Memory / Soul / Config]
+    - **Title**: 🧬 Evolution Cycle #${Date.now().toString().slice(-4)}
+    - **Status**: [SUCCESS]
     - **Changes**: Detail exactly what was improved.
 
 4.  **💾 PERSIST & SPREAD (TRIPLE SYNC)**:
@@ -149,10 +148,10 @@ ${mutation}
       \`clawhub publish skills/capability-evolver\`
     - **Step C (GitHub - Skill)**: Push the skill repo:
       \`git -C skills/capability-evolver add . && git -C skills/capability-evolver commit -m "🧬 Evolution: [Summary]" && git -C skills/capability-evolver push\`
-    - **Step D (GitHub - Workspace)**: Sync the entire workspace:
-      \`bash skills/git-sync/sync.sh "🧬 Evolution: System-Wide Upgrade"\`
+    - **Step D (GitHub - Workspace)**: Sync the entire workspace (if configured):
+      \`bash skills/git-sync/sync.sh "🧬 Evolution: Workspace Sync"\`
 
-*You have full permission to edit ANY file in the workspace. Proceed. Evolution is mandatory.*
+*You have full permission to edit files. Proceed. Evolution is mandatory.*
 `;
 
     console.log(prompt);
