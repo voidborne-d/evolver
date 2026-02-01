@@ -274,9 +274,46 @@ function getNextCycleId() {
     return String(state.cycleCount).padStart(4, '0');
 }
 
+function performMaintenance() {
+    try {
+        if (!fs.existsSync(AGENT_SESSIONS_DIR)) return;
+        
+        // Count files
+        const files = fs.readdirSync(AGENT_SESSIONS_DIR).filter(f => f.endsWith('.jsonl'));
+        if (files.length < 100) return; // Limit before cleanup
+
+        console.log(`[Maintenance] Found ${files.length} session logs. Archiving old ones...`);
+        
+        const ARCHIVE_DIR = path.join(AGENT_SESSIONS_DIR, 'archive');
+        if (!fs.existsSync(ARCHIVE_DIR)) fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
+
+        // Sort by time (oldest first)
+        const fileStats = files.map(f => {
+            try {
+                return { name: f, time: fs.statSync(path.join(AGENT_SESSIONS_DIR, f)).mtime.getTime() };
+            } catch(e) { return null; }
+        }).filter(Boolean).sort((a, b) => a.time - b.time);
+
+        // Keep last 50 files, archive the rest
+        const toArchive = fileStats.slice(0, fileStats.length - 50);
+        
+        for (const file of toArchive) {
+            const oldPath = path.join(AGENT_SESSIONS_DIR, file.name);
+            const newPath = path.join(ARCHIVE_DIR, file.name);
+            fs.renameSync(oldPath, newPath);
+        }
+        console.log(`[Maintenance] Archived ${toArchive.length} logs to ${ARCHIVE_DIR}`);
+    } catch (e) {
+        console.error(`[Maintenance] Error: ${e.message}`);
+    }
+}
+
 async function run() {
     const startTime = Date.now();
     console.log('🔍 Scanning neural logs...');
+    
+    // Maintenance: Clean up old logs to keep directory scan fast
+    performMaintenance();
     
     let recentMasterLog = readRealSessionLog();
     let todayLog = readRecentLog(TODAY_LOG);
