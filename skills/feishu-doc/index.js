@@ -30,6 +30,14 @@ async function main() {
     // Ensure cache dir exists
     if (!fs.existsSync(CACHE_DIR)) {
       fs.mkdirSync(CACHE_DIR, { recursive: true });
+    } else {
+      // Probabilistic cleanup (10% chance) to prevent infinite growth
+      // We do this BEFORE fetching to keep the disk tidy.
+      // We assume other processes aren't racing to read these specific files simultaneously 
+      // in a way that would break (atomic unlink is fine).
+      if (Math.random() < 0.1) {
+        cleanCache();
+      }
     }
 
     // Attempt cache read
@@ -130,6 +138,33 @@ async function processUrl(url, accessToken) {
     return await fetchBitableContent(token, accessToken);
   } else {
     return { error: `Unknown type: ${type}` };
+  }
+}
+
+function cleanCache() {
+  try {
+    const files = fs.readdirSync(CACHE_DIR);
+    const now = Date.now();
+    // Delete files older than 1 hour (3600000 ms)
+    const MAX_AGE = 60 * 60 * 1000;
+    
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      // Skip token.json if it exists here (though it should be in cache/token.json, better safe)
+      if (file === 'token.json') continue;
+
+      const filePath = path.join(CACHE_DIR, file);
+      try {
+        const stats = fs.statSync(filePath);
+        if (now - stats.mtimeMs > MAX_AGE) {
+           fs.unlinkSync(filePath);
+        }
+      } catch (e) {
+        // Ignore individual file errors
+      }
+    }
+  } catch (err) {
+    // Ignore directory scan errors
   }
 }
 

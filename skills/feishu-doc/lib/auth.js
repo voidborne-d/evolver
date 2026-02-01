@@ -39,8 +39,23 @@ function loadConfig() {
   };
 }
 
+const TOKEN_CACHE_FILE = path.join(__dirname, '../cache/token.json');
+
 async function getTenantAccessToken() {
   const now = Date.now() / 1000;
+
+  // Try to load from disk first
+  if (!tokenCache.token && fs.existsSync(TOKEN_CACHE_FILE)) {
+    try {
+      const saved = JSON.parse(fs.readFileSync(TOKEN_CACHE_FILE, 'utf8'));
+      if (saved.token && saved.expireTime > now) {
+        tokenCache = saved;
+      }
+    } catch (e) {
+      // Ignore corrupted cache
+    }
+  }
+
   if (tokenCache.token && tokenCache.expireTime > now) {
     return tokenCache.token;
   }
@@ -67,6 +82,17 @@ async function getTenantAccessToken() {
 
   tokenCache.token = data.tenant_access_token;
   tokenCache.expireTime = now + data.expire - 60; // Refresh 1 minute early
+
+  // Persist to disk
+  try {
+    const cacheDir = path.dirname(TOKEN_CACHE_FILE);
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    fs.writeFileSync(TOKEN_CACHE_FILE, JSON.stringify(tokenCache));
+  } catch (e) {
+    console.error("Failed to save token cache:", e.message);
+  }
 
   return tokenCache.token;
 }
