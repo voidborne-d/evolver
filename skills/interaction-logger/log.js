@@ -35,13 +35,17 @@ const fileMap = {
 
 let filePath = fileMap[config.target.toLowerCase()];
 
-// Auto-detect or fallback if target looks like a raw ID or unmapped name?
-// For now, strict mapping to ensure we respect the folder structure.
+// Dynamic Target Support
 if (!filePath) {
-    // If not in map, maybe it's a direct filename? No, unsafe.
-    // Default to a generic log if unknown?
-    console.error(`Unknown target: ${config.target}. Allowed: zhy, fmw`);
-    process.exit(1);
+    // Sanitize target to be safe for filesystem
+    const safeTarget = config.target.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    if (safeTarget) {
+        filePath = `memory/users/${safeTarget}.json`;
+        console.log(`New target detected. Logging to: ${filePath}`);
+    } else {
+        console.error(`Invalid target: ${config.target}`);
+        process.exit(1);
+    }
 }
 
 const absolutePath = path.resolve(process.cwd(), filePath);
