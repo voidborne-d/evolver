@@ -1,7 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const { program } = require('commander');
-const { spawn } = require('child_process');
+const https = require('https');
+
+// Load environment variables
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+
+const APP_ID = process.env.FEISHU_APP_ID;
+const APP_SECRET = process.env.FEISHU_APP_SECRET;
+const TOKEN_CACHE_FILE = path.resolve(__dirname, '../../memory/feishu_token.json');
 
 program
   .option('--title <string>', 'Title of the story')
@@ -12,11 +19,57 @@ program
 
 const options = program.opts();
 
-// Glitch text generator (simple Zalgo-like effect)
+// Glitch text generator
 function glitch(text) {
-  const chars = ['mw', 'v', 'u', 'x', 'o', '...'];
-  // Simple "corruption"
-  return text.split('').map(c => Math.random() > 0.9 ? c + '\u0336' : c).join('');
+  const chars = ['\u0336', '\u035C', '\u0329', '\u031F'];
+  return text.split('').map(c => Math.random() > 0.8 ? c + chars[Math.floor(Math.random() * chars.length)] : c).join('');
+}
+
+// Simple fetch wrapper since Node 18+ has fetch, but being safe for older environments or just using https
+async function post(url, data, token) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => resolve(JSON.parse(body)));
+    });
+    req.on('error', reject);
+    req.write(JSON.stringify(data));
+    req.end();
+  });
+}
+
+async function getToken() {
+  // Try cache
+  try {
+    if (fs.existsSync(TOKEN_CACHE_FILE)) {
+      const cached = JSON.parse(fs.readFileSync(TOKEN_CACHE_FILE, 'utf8'));
+      if (cached.expire > Date.now() / 1000 + 300) return cached.token;
+    }
+  } catch (e) {}
+
+  // Fetch new
+  const res = await post('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+    app_id: APP_ID,
+    app_secret: APP_SECRET
+  });
+  
+  if (!res.tenant_access_token) throw new Error(`Token fetch failed: ${JSON.stringify(res)}`);
+
+  try {
+    fs.writeFileSync(TOKEN_CACHE_FILE, JSON.stringify({
+      token: res.tenant_access_token,
+      expire: Date.now() / 1000 + res.expire
+    }));
+  } catch (e) {}
+
+  return res.tenant_access_token;
 }
 
 async function main() {
@@ -26,11 +79,9 @@ async function main() {
   }
 
   const cardContent = {
-    "config": {
-      "wide_screen_mode": true
-    },
+    "config": { "wide_screen_mode": true },
     "header": {
-      "template": "red", // Danger color
+      "template": "red",
       "title": {
         "tag": "plain_text",
         "content": `👻 AutoGame 异闻录: ${options.title}`
@@ -75,28 +126,26 @@ async function main() {
     ]
   };
 
-  // Use the existing feishu-card sender logic or curl
-  // Since we are inside the skill, let's just use the feishu-card skill to send it to avoid duplicating logic
-  // We will construct the JSON string and pass it to the feishu-card send.js if possible, 
-  // OR just print it for the agent to send. 
-  // Better: The agent can run this script to GENERATE the JSON, then send it.
-  // Actually, let's make this script SEND it using the existing tool pattern.
+  try {
+    const token = await getToken();
+    let receiveIdType = 'open_id';
+    if (options.target.startsWith('oc_')) receiveIdType = 'chat_id';
+    
+    const res = await post(`https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`, {
+      receive_id: options.target,
+      msg_type: 'interactive',
+      content: JSON.stringify(cardContent)
+    }, token);
 
-  // We'll call the `feishu-card/send.js` via child_process to handle the actual API call
-  // But wait, `feishu-card` takes title/text args, it might not support raw card JSON easily via CLI args unless we modify it.
-  // Let's look at `skills/feishu-card/send.js` usage in previous turns. It takes --text.
-  // If we want a custom card structure (like red header), we might need to use raw curl or update feishu-card.
-  
-  // Quick fix: Just use the `feishu-card` skill but pass the constructed "MarkDown" as text.
-  // BUT the user wants a "Skill" that makes a "Ghost Story".
-  // Let's make this script output the JSON, and I (the agent) will send it via `curl` or `feishu-card`.
-  
-  // Actually, I'll write a standalone sender here to be self-contained.
-  
-  // Mocking the send for now by printing the command the agent should run.
-  // "Agent, please run this:"
-  
-  console.log(JSON.stringify(cardContent, null, 2));
+    if (res.code !== 0) {
+      console.error("Send failed:", res);
+      process.exit(1);
+    }
+    console.log("Ghost story sent successfully!");
+  } catch (e) {
+    console.error("Error:", e);
+    process.exit(1);
+  }
 }
 
 main();
