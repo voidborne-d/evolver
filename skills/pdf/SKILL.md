@@ -8,24 +8,25 @@ license: Proprietary. LICENSE.txt has complete terms
 
 ## Overview
 
-This guide covers essential PDF processing operations using Python libraries and command-line tools. For advanced features, JavaScript libraries, and detailed examples, see reference.md. If you need to fill out a PDF form, read forms.md and follow its instructions.
+This skill provides a **Node.js CLI tool** for quick text and table extraction, as well as documentation for advanced Python processing.
 
-## Quick Start
+## 🚀 CLI Tool (New!)
 
-```python
-from pypdf import PdfReader, PdfWriter
+Use the built-in `pdf-tool` directly from the skills directory.
 
-# Read a PDF
-reader = PdfReader("document.pdf")
-print(f"Pages: {len(reader.pages)}")
-
+```bash
 # Extract text
-text = ""
-for page in reader.pages:
-    text += page.extract_text()
+node skills/pdf/index.js extract-text document.pdf
+
+# Extract tables (heuristic CSV)
+node skills/pdf/index.js extract-table document.pdf -o tables.csv
+
+# Get metadata
+node skills/pdf/index.js info document.pdf
 ```
 
-## Python Libraries
+## Python Libraries (Reference)
+(Below is the legacy reference for Python usage if you have a Python environment)
 
 ### pypdf - Basic Operations
 

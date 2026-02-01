@@ -1,0 +1,16 @@
+{
+  "name": "pdf-toolkit",
+  "version": "1.0.0",
+  "description": "PDF manipulation toolkit for OpenClaw",
+  "main": "index.js",
+  "bin": {
+    "pdf-tool": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "pdf-parse": "^1.1.1"
+  }
+}
