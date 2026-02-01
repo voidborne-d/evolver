@@ -4,6 +4,47 @@ const path = require('path');
 const { program } = require('commander');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
+// AI Integration
+let GoogleGenerativeAI;
+try {
+    GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
+} catch (e) {
+    try {
+        // Fallback to sticker-analyzer's copy
+        GoogleGenerativeAI = require(path.resolve(__dirname, '../sticker-analyzer/node_modules/@google/generative-ai')).GoogleGenerativeAI;
+    } catch (e2) {}
+}
+
+async function getAiSummary(messages) {
+    if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) return null;
+    try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        
+        const transcript = messages.map(m => {
+            const sender = (m.sender || 'u').replace(/^ou_/, '').slice(0, 6);
+            let text = m.content;
+            if (typeof text === 'object') text = JSON.stringify(text);
+            return `${sender}: ${text}`;
+        }).slice(-150).join('\n'); // Increased context
+
+        const prompt = `Analyze this chat log (last 150 msgs).
+Output a Markdown summary:
+1. **🔍 Topics**: Bullet points.
+2. **💡 Intel**: Key insights/decisions/drama.
+3. **🎭 Vibe**: 1 sentence sentiment.
+
+Log:
+${transcript}`;
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (e) {
+        return `_AI Summary Failed: ${e.message}_`;
+    }
+}
+
+
 // Try to load GenAI
 let GoogleGenerativeAI;
 try {

@@ -74,37 +74,6 @@ if (fs.existsSync(absolutePath)) {
     }
 }
 
-// Read or Initialize
-let data = { sessions: [] };
-if (fs.existsSync(absolutePath)) {
-    try {
-        const fileContent = fs.readFileSync(absolutePath, 'utf8');
-        if (fileContent.trim()) {
-            data = JSON.parse(fileContent);
-        }
-    } catch (e) {
-        console.error("Error reading/parsing file:", e.message);
-        // We do NOT overwrite corrupted files blindly.
-        console.error("Aborting to prevent data loss.");
-        process.exit(1);
-    }
-}
-
-// Ensure schema
-if (!data.sessions) {
-    data.sessions = [];
-}
-
-// Create Entry
-const entry = {
-    timestamp: new Date().toISOString(),
-    role: config.role || 'assistant',
-    content: config.content
-};
-
-// Append
-data.sessions.push(entry);
-
 // Helper: Update Global Context
 function updateGlobalContext(user, chat = null) {
     const contextPath = path.resolve(__dirname, '../../memory/context.json');
@@ -131,34 +100,54 @@ function updateGlobalContext(user, chat = null) {
     }
 }
 
-// Write Atomic-ish (Write to temp, then rename)
-const tempPath = absolutePath + '.tmp';
+// Create Entry
+const entry = {
+    timestamp: new Date().toISOString(),
+    role: config.role || 'assistant',
+    content: config.content
+};
+const logLine = JSON.stringify(entry) + '\n';
+
+// Write Strategy: Append (JSONL) with Legacy Migration
 try {
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
-    fs.renameSync(tempPath, absolutePath);
-    console.log(`Successfully logged to ${filePath} (Atomic Write)`);
-    
+    let needsMigration = false;
+    if (fs.existsSync(absolutePath)) {
+        // Peek at first char to detect Legacy JSON Array format
+        const fd = fs.openSync(absolutePath, 'r');
+        const buffer = Buffer.alloc(1);
+        const bytesRead = fs.readSync(fd, buffer, 0, 1, 0);
+        fs.closeSync(fd);
+        
+        if (bytesRead > 0 && buffer.toString() === '{') {
+            needsMigration = true;
+        }
+    }
+
+    if (needsMigration) {
+        console.log(`[Logger] Migrating legacy JSON log to JSONL: ${filePath}`);
+        const legacyContent = fs.readFileSync(absolutePath, 'utf8');
+        const legacyData = JSON.parse(legacyContent);
+        const sessions = legacyData.sessions || [];
+        
+        // Rewrite as JSONL
+        const jsonlContent = sessions.map(s => JSON.stringify(s)).join('\n') + '\n';
+        fs.writeFileSync(absolutePath, jsonlContent); // Overwrite
+    }
+
+    // Append new line
+    fs.appendFileSync(absolutePath, logLine);
+    console.log(`Successfully logged to ${filePath} (JSONL Append)`);
+
     // Update Context if this was a User message
     if (config.role === 'user') {
-        // If target is an ID (ou_...), use it. If alias, we might not know the ID.
-        // But assuming target IS the ID for new dynamic targets.
-        // Also check for new --chat-id arg if passed (future proofing)
         let userId = config.target;
-        let chatId = config.chatId || config['chat-id']; // Handle both casings
-
-        // If target is an alias like 'zhy', we might not want to put 'zhy' as the ID?
-        // But for now, let's just log it. feishu-card might not like 'zhy', but 'ou_...' works.
-        // We only update context if it LOOKS like an ID or we are sure.
+        let chatId = config.chatId || config['chat-id']; 
         if (userId.startsWith('ou_') || userId.startsWith('oc_')) {
              updateGlobalContext(userId, chatId);
         }
     }
 
 } catch (e) {
-    console.error("Error writing file:", e.message);
-    // Try to clean up temp file if it exists
-    if (fs.existsSync(tempPath)) {
-        try { fs.unlinkSync(tempPath); } catch (err) {}
-    }
+    console.error("Error writing log:", e.message);
     process.exit(1);
 }

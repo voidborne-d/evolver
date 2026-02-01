@@ -55,26 +55,40 @@ async function main() {
     const cacheFile = path.join(CACHE_DIR, `${cacheKey}.json`);
 
     if (!noCache && fs.existsSync(cacheFile)) {
-      const stats = fs.statSync(cacheFile);
-      const age = Date.now() - stats.mtimeMs;
-      
-      if (age < CACHE_TTL_MS) {
-        // Cache hit
-        const cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        cachedData._source = "cache";
-        cachedData._cachedAt = stats.mtime;
-        console.log(JSON.stringify(cachedData, null, 2));
-        clearTimeout(watchdog);
-        return;
+      try {
+        const stats = fs.statSync(cacheFile);
+        const age = Date.now() - stats.mtimeMs;
+        
+        if (age < CACHE_TTL_MS) {
+          // Cache hit
+          const raw = fs.readFileSync(cacheFile, 'utf8');
+          const cachedData = JSON.parse(raw);
+          cachedData._source = "cache";
+          cachedData._cachedAt = stats.mtime;
+          console.log(JSON.stringify(cachedData, null, 2));
+          clearTimeout(watchdog);
+          return;
+        }
+      } catch (cacheErr) {
+        // Stability: Handle corrupt cache gracefully
+        console.error(`[Cache Error] Corrupt file detected, deleting: ${cacheErr.message}`);
+        try { fs.unlinkSync(cacheFile); } catch(e){}
       }
     }
 
     const accessToken = await getTenantAccessToken();
     const result = await processUrl(url, accessToken);
     
-    // Save to cache
+    // Save to cache (Atomic)
     if (result && !result.error) {
-       fs.writeFileSync(cacheFile, JSON.stringify(result, null, 2));
+       const tempFile = `${cacheFile}.tmp.${Date.now()}`;
+       try {
+           fs.writeFileSync(tempFile, JSON.stringify(result, null, 2));
+           fs.renameSync(tempFile, cacheFile);
+       } catch (writeErr) {
+           console.error(`[Cache Write Error] ${writeErr.message}`);
+           try { fs.unlinkSync(tempFile); } catch(e){}
+       }
     }
 
     // Output JSON result
