@@ -16,8 +16,15 @@ if (!fs.existsSync(pkgPath)) {
     process.exit(0);
 }
 
-// 1. Check Auth
+// 1. Check Auth & CLI Availability
 console.log('🔍 Checking ClawHub authentication...');
+try {
+    execSync('which clawhub', { stdio: 'ignore' });
+} catch (e) {
+    console.log('⚠️ ClawHub CLI not found. Skipping publish.');
+    process.exit(0);
+}
+
 try {
     execSync('clawhub whoami', { stdio: 'ignore' });
 } catch (e) {
@@ -26,12 +33,25 @@ try {
 }
 
 // 2. Bump Version
+let originalContent = '';
 try {
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    originalContent = fs.readFileSync(pkgPath, 'utf8');
+    const pkg = JSON.parse(originalContent);
+    
+    if (!pkg.version) {
+        throw new Error('No version field in package.json');
+    }
+
     const versionParts = pkg.version.split('.').map(Number);
+    if (versionParts.some(isNaN)) {
+         throw new Error(`Invalid version format: ${pkg.version}`);
+    }
+    
     versionParts[2] += 1; // Patch bump
     pkg.version = versionParts.join('.');
-    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+    
+    // Write with newline at EOF
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
     console.log(`✅ Bumped version to ${pkg.version}`);
 } catch (e) {
     console.error(`❌ Failed to bump version: ${e.message}`);
@@ -45,5 +65,8 @@ try {
     console.log('✅ Publish complete.');
 } catch (e) {
     console.error(`❌ Publish failed: ${e.message}`);
+    // Optional: Revert version on failure? 
+    // For now, we leave it as the file is already modified on disk.
+    // Restoring original content might interfere with git flow if not careful.
     process.exit(1);
 }
