@@ -89,13 +89,30 @@ function readRecentLog(filePath, size = 10000) {
     }
 }
 
-function getMutationDirective() {
+function getMutationDirective(logContent) {
+    // Adaptive Logic: Analyze recent logs for stability
+    const errorCount = (logContent.match(/\[ERROR/g) || []).length + (logContent.match(/"isError":true/g) || []).length;
+    const isUnstable = errorCount > 2;
+
     const roll = Math.floor(Math.random() * 100) + 1;
+    
+    // If unstable, force stability unless roll is critical (95+)
+    if (isUnstable && roll < 95) {
+         return `
+**🧬 ADAPTIVE STABILITY MODE (Detected ${errorCount} recent errors)**
+The system detected instability in recent sessions. 
+**MANDATORY DIRECTIVE**:
+- **Fix Bugs**: Locate the source of the recent errors and patch them.
+- **Harden Code**: Add try/catch blocks or input validation.
+- **Do NOT** add new features until stability is restored.
+`;
+    }
+
     const THRESHOLD = 60; // Slightly more frequent mutations, but strictly useful ones
     if (roll > THRESHOLD) {
         return `
 **🧬 GENETIC MUTATION ACTIVATED (Roll: ${roll})**
-You have triggered a mutation event! 
+System appears stable (${errorCount} recent errors). Evolution is permitted.
 Your goal is **FUNCTIONAL UTILITY**. Do NOT create entertainment or cosmetic quirks.
 **Directives:**
 - **Optimize**: Find a script that is slow or verbose and streamline it.
@@ -160,7 +177,7 @@ async function run() {
         }
     } catch (e) { fileList = 'Error listing skills: ' + e.message; }
 
-    const mutation = getMutationDirective();
+    const mutation = getMutationDirective(recentMasterLog);
     
     const prompt = `
 *** 🧬 OPENCLAW EVOLUTION LOOP (RALPH MODE) ***
