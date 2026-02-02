@@ -26,7 +26,9 @@ function run(command, ignoreError = false) {
     if (!ignoreError) {
       console.error(`Command failed: ${command}`);
     }
-    return { success: false, output: error.stdout + '\n' + error.stderr };
+    // execSync throws an error object that contains stdout/stderr
+    const errOut = (error.stdout || '') + '\n' + (error.stderr || '');
+    return { success: false, output: errOut };
   }
 }
 
@@ -98,8 +100,6 @@ async function callLLM(prompt) {
 }
 
 function findFailingFile(output) {
-    // Look for common file patterns in error output
-    // Prioritize lines with "FAIL" or "Error"
     const lines = output.split('\n');
     const fileRegex = /([a-zA-Z0-9_\-\./]+\.(?:ts|js|tsx|jsx))/;
     
@@ -124,6 +124,125 @@ function findFailingFile(output) {
     return null;
 }
 
+function getTargetBranch(prNumber) {
+    const res = run(`gh pr view ${prNumber} --json baseRefName --jq .baseRefName`, true);
+    if (res.success) {
+        return res.output.trim();
+    }
+    console.warn("Could not determine target branch. Defaulting to 'main'.");
+    return 'main';
+}
+
+async function resolveConflicts(targetBranch) {
+    console.log(`\n--- Checking for merge conflicts with ${targetBranch} ---`);
+    
+    // Ensure we have the latest target branch info
+    run(`git fetch origin ${targetBranch}`);
+    
+    // Try to merge target into current branch
+    const mergeRes = run(`git merge origin/${targetBranch}`, true);
+    
+    if (mergeRes.success) {
+        console.log("No conflicts with target branch (or merge clean).");
+        return true;
+    }
+    
+    // Check if it's actually a conflict
+    if (!mergeRes.output.includes('CONFLICT') && !mergeRes.output.includes('conflict')) {
+        console.error("Merge failed for reason other than conflicts:");
+        console.error(mergeRes.output);
+        return false;
+    }
+    
+    console.log("⚠️ Merge conflicts detected. Attempting AI resolution...");
+    
+    // Get list of conflicted files
+    const diffRes = run('git diff --name-only --diff-filter=U', true);
+    if (!diffRes.success) {
+        console.error("Failed to list conflicted files.");
+        return false;
+    }
+    
+    const files = diffRes.output.trim().split('\n').filter(f => f);
+    if (files.length === 0) {
+        console.error("Merge failed but no conflicted files found?");
+        return false;
+    }
+
+    for (const file of files) {
+        console.log(`Resolving conflict in: ${file}`);
+        if (!fs.existsSync(file)) {
+            console.log(`File ${file} deleted in one branch? Skipping.`);
+            continue;
+        }
+        
+        const content = fs.readFileSync(file, 'utf8');
+        
+        const prompt = `You are an expert developer. The following file contains git merge conflict markers (<<<<<<<, =======, >>>>>>>).
+        
+Please resolve the conflicts intelligently. Preserve the logic that makes the most sense.
+Ensure the code is syntactically correct and functional. Return ONLY the resolved code for the entire file.
+
+File content:
+${content}`;
+
+        console.log("Calling LLM...");
+        const resolved = await callLLM(prompt);
+        if (!resolved) {
+            console.error(`Failed to resolve ${file} via LLM.`);
+            run('git merge --abort');
+            return false;
+        }
+        
+        fs.writeFileSync(file, resolved);
+        run(`git add "${file}"`);
+    }
+    
+    const commitRes = run('git commit -m "chore: resolve merge conflicts via auto-pr-merger"', true);
+    if (commitRes.success) {
+        console.log("Conflicts resolved locally. Pushing to PR branch...");
+        const pushRes = run('git push');
+        if (pushRes.success) {
+            console.log("Push successful.");
+            return true;
+        } else {
+            console.error("Failed to push resolution.");
+            return false;
+        }
+    } else {
+        console.error("Failed to commit resolution.");
+        return false;
+    }
+}
+
+function performMerge(prNumber) {
+    console.log('\n--- Step 4: Merging PR ---');
+    console.log("Attempting auto-merge (wait for checks)...");
+    
+    // Try auto-merge first (respects branch protection)
+    const attempt1 = run(`gh pr merge ${prNumber} --merge --auto --delete-branch`, true);
+    
+    if (attempt1.success) {
+        console.log('🎉 PR marked for auto-merge successfully!');
+        return true;
+    }
+    
+    console.warn("⚠️ Auto-merge failed. Likely no branch protection or checks pending.");
+    console.warn(`Stderr: ${attempt1.output}`);
+    console.log("Attempting immediate merge...");
+    
+    // Fallback to immediate merge
+    const attempt2 = run(`gh pr merge ${prNumber} --merge --delete-branch`, true);
+    if (attempt2.success) {
+        console.log('🎉 PR merged successfully (immediate)!');
+        return true;
+    }
+    
+    console.error('❌ Failed to merge PR.');
+    console.error(attempt2.output);
+    return false;
+}
+
 async function main() {
   console.log(`Starting Auto PR Merger for PR: ${pr}`);
   console.log(`Test Command: ${testCommand}`);
@@ -136,6 +255,17 @@ async function main() {
     console.error('Failed to checkout PR. Ensure gh CLI is authenticated and repo is valid.');
     console.error(checkoutRes.output);
     process.exit(1);
+  }
+
+  // 1b. Check for conflicts
+  const targetBranch = getTargetBranch(pr);
+  const conflictResolved = await resolveConflicts(targetBranch);
+  
+  if (!conflictResolved && fs.existsSync('.git/MERGE_HEAD')) {
+      // If we are still in a merging state (failed resolve), abort
+      console.error("Could not resolve conflicts. Aborting.");
+      run('git merge --abort');
+      process.exit(1);
   }
 
   let attempt = 0;
@@ -175,7 +305,7 @@ async function main() {
                 fs.writeFileSync(failingFile, fixedCode);
                 
                 run('git add .');
-                const commitRes = run('git commit -m "Auto-fix applied by auto-pr-merger"');
+                const commitRes = run('git commit -m "Auto-fix applied by auto-pr-merger"', true);
                 if (commitRes.success) {
                      run('git push');
                      console.log("Fix pushed to branch.");
@@ -199,15 +329,10 @@ async function main() {
 
   // 4. Merge if successful
   if (testsPassed) {
-    console.log('\n--- Step 4: Merging PR ---');
-    // Using --merge --auto to enable auto-merge or merge immediately
-    const mergeRes = run(`gh pr merge ${pr} --merge --auto --delete-branch`);
-    if (mergeRes.success) {
-      console.log('🎉 PR merged successfully!');
+    if (performMerge(pr)) {
+        process.exit(0);
     } else {
-      console.error('Failed to merge PR.');
-      console.error(mergeRes.output);
-      process.exit(1);
+        process.exit(1);
     }
   } else {
     console.log('\n⛔ Workflow failed. PR not merged.');
