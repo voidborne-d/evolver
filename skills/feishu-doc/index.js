@@ -1,6 +1,6 @@
 const { getTenantAccessToken } = require('./lib/auth');
 const { resolveWiki } = require('./lib/wiki');
-const { fetchDocxContent } = require('./lib/docx');
+const { fetchDocxContent, appendDocxContent } = require('./lib/docx');
 const { fetchSheetContent } = require('./lib/sheet');
 const { fetchBitableContent } = require('./lib/bitable');
 const fs = require('fs');
@@ -43,8 +43,8 @@ async function main() {
   const url = args[1];
   const noCache = args.includes('--no-cache');
 
-  if (command !== 'fetch') {
-    console.log(JSON.stringify({ error: "Usage: node index.js fetch <url> [--no-cache]", status: "usage_error" }));
+  if (command !== 'fetch' && command !== 'append') {
+    console.log(JSON.stringify({ error: "Usage: node index.js <fetch|append> <url> [options]", status: "usage_error" }));
     process.exit(1);
   }
 
@@ -100,6 +100,31 @@ async function main() {
     }
 
     const result = await executeWithAuthRetry(async (token) => {
+        if (command === 'append') {
+            const contentIdx = args.indexOf('--content');
+            if (contentIdx === -1) throw new Error("Missing --content argument");
+            const content = args[contentIdx + 1];
+            
+            const wikiRegex = /\/wiki\/([a-zA-Z0-9]+)/;
+            const docxRegex = /\/docx\/([a-zA-Z0-9]+)/;
+            let id = '';
+            let type = 'docx'; // Default assumption if plain token
+            
+            if (wikiRegex.test(url)) {
+                 const wikiToken = url.match(wikiRegex)[1];
+                 const wikiInfo = await resolveWiki(wikiToken, token);
+                 if (wikiInfo) { id = wikiInfo.obj_token; type = wikiInfo.obj_type; }
+            } else if (docxRegex.test(url)) {
+                 id = url.match(docxRegex)[1];
+            } else if (url.match(/^[a-zA-Z0-9]{10,}$/)) {
+                 id = url;
+            } else {
+                 throw new Error("Invalid URL or Token");
+            }
+            
+            if (type !== 'docx') throw new Error(`Append only supported for docx (got ${type})`);
+            return await appendDocxContent(id, content, token);
+        }
         return await processUrl(url, token);
     });
     

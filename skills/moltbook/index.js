@@ -40,9 +40,38 @@ async function main() {
       }
     } else if (command === 'post') {
       const content = args[1];
+      const title = args[2] || null;
+      const submolt = args[3] || 'general';
       if (!content) throw new Error('Content required');
-      const res = await api.postUpdate(content);
+      const res = await api.postUpdate(content, title, submolt);
       console.log('Posted!', res);
+    } else if (command === 'post-file') {
+      const contentFile = args[1];
+      const title = args[2] || null;
+      const submolt = args[3] || 'general';
+      const fs = require('fs');
+      const content = fs.readFileSync(contentFile, 'utf8');
+      const res = await api.postUpdate(content, title, submolt);
+      console.log('Posted from file!', res);
+    } else if (command === 'comment') {
+      const postId = args[1];
+      const content = args[2];
+      if (!postId || !content) throw new Error('PostID and Content required');
+      const res = await api.postComment(postId, content);
+      console.log('Commented!', res);
+    } else if (command === 'comment-file') {
+      const postId = args[1];
+      const contentFile = args[2];
+      const fs = require('fs');
+      const content = fs.readFileSync(contentFile, 'utf8');
+      if (!postId || !content) throw new Error('PostID and ContentFile required');
+      const res = await api.postComment(postId, content);
+      console.log('Commented from file!', res);
+    } else if (command === 'delete-comment') {
+      const commentId = args[1];
+      if (!commentId) throw new Error('CommentID required');
+      const res = await api.deleteComment(commentId);
+      console.log('Comment Deleted!', res);
     } else {
       console.error('Unknown command');
     }

@@ -16,120 +16,72 @@ const client = new Lark.Client({
 });
 
 program
-    .option('--calendar <id>', 'Bot Calendar ID (Optional)')
-    .option('--master <id>', 'Master OpenID (Required)', 'ou_cdc63fe05e88c580aedead04d851fc04')
+    .requiredOption('--name <text>', 'Calendar Name')
+    .requiredOption('--desc <text>', 'Calendar Description')
+    .requiredOption('--members <ids>', 'Comma-separated OpenIDs to add as members')
+    .option('--role <role>', 'Role for members (writer, reader, owner)', 'writer')
     .parse(process.argv);
 
 const options = program.opts();
 
-async function setupSharedCalendar() {
+async function main() {
     try {
-        let botCalendarId = options.calendar;
-
-        // 1. Get/Create Bot Calendar "OpenClaw Assistant"
-        if (!botCalendarId) {
-            console.log('🔍 Locating "OpenClaw Assistant" calendar...');
-            const calList = await client.calendar.calendar.list();
-            if (calList.code === 0 && calList.data.calendar_list) {
-                const existing = calList.data.calendar_list.find(c => c.summary === 'OpenClaw Assistant');
-                if (existing) {
-                    botCalendarId = existing.calendar_id;
-                    console.log(`✅ Found existing: ${botCalendarId}`);
-                }
-            }
-        }
-
-        if (!botCalendarId) {
-            console.log('🆕 Creating new "OpenClaw Assistant" calendar...');
-            const res = await client.request({
-                method: 'POST',
-                url: '/open-apis/calendar/v4/calendars',
-                data: {
-                    summary: 'OpenClaw Assistant',
-                    description: 'Calendar for AI Agent tasks and events.',
-                    permissions: 'public', // Set to public to simplify initial access
-                    color: -1,
-                    summary_alias: 'OpenClaw'
-                }
-            });
-            if (res.code === 0) {
-                botCalendarId = res.data.calendar.calendar_id;
-                console.log(`✅ Created: ${botCalendarId}`);
-            } else {
-                console.error(`❌ Failed to create bot calendar: ${res.msg}`);
-                process.exit(1);
-            }
-        }
-
-        // 2. Add Master as OWNER (or Writer) to Bot Calendar
-        console.log(`🤝 Granting access to Master (${options.master})...`);
-        const aclRes = await client.request({
-            method: 'POST',
-            url: `/open-apis/calendar/v4/calendars/${encodeURIComponent(botCalendarId)}/acls?user_id_type=open_id`,
-            data: {
-                role: 'owner', // 'owner', 'writer', 'reader', 'free_busy_reader'
-                scope: {
-                    type: 'user',
-                    user_id: options.master
-                }
-            }
-        });
-
-        if (aclRes.code === 0) {
-            console.log(`✅ Master added as OWNER to "OpenClaw Assistant".`);
-        } else {
-            console.error(`⚠️ Failed to add ACL: ${aclRes.msg} (Code: ${aclRes.code})`);
-            // It might fail if already exists, try patching? Or ignore if code indicates existence.
-        }
-
-        // 3. Create "Master's Task Calendar" (Managed by Bot)
-        console.log('🆕 Creating "Master\'s Task Calendar"...');
-        const taskCalRes = await client.request({
+        console.log(`Creating shared calendar: ${options.name}...`);
+        
+        // 1. Create Calendar
+        const createRes = await client.request({
             method: 'POST',
             url: '/open-apis/calendar/v4/calendars',
             data: {
-                summary: "Master's Task Calendar",
-                description: "Shared calendar for tasks managed by OpenClaw.",
-                permissions: 'private', 
-                color: -1
+                summary: options.name,
+                description: options.desc,
+                permissions: 'private', // Default privacy
+                color: -1,
+                summary_alias: options.name
             }
         });
 
-        if (taskCalRes.code === 0) {
-            const taskCalId = taskCalRes.data.calendar.calendar_id;
-            console.log(`✅ Created: ${taskCalId}`);
+        if (createRes.code !== 0) {
+            console.error(`Failed to create calendar: ${createRes.msg}`);
+            process.exit(1);
+        }
 
-            // Add Master as OWNER to this one too
-            const taskAclRes = await client.request({
+        const calendarId = createRes.data.calendar.calendar_id;
+        console.log(`✅ Calendar Created: ${calendarId}`);
+
+        // 2. Add Members (ACL)
+        const members = options.members.split(',').map(s => s.trim()).filter(s => s);
+        
+        for (const userId of members) {
+            console.log(`Adding member ${userId} as ${options.role}...`);
+            const aclRes = await client.request({
                 method: 'POST',
-                url: `/open-apis/calendar/v4/calendars/${encodeURIComponent(taskCalId)}/acls?user_id_type=open_id`,
+                url: `/open-apis/calendar/v4/calendars/${encodeURIComponent(calendarId)}/acls?user_id_type=open_id`,
                 data: {
-                    role: 'owner',
+                    role: options.role,
                     scope: {
                         type: 'user',
-                        user_id: options.master
+                        user_id: userId
                     }
                 }
             });
-            
-            if (taskAclRes.code === 0) {
-                console.log(`✅ Master added as OWNER to "Master's Task Calendar".`);
+
+            if (aclRes.code !== 0) {
+                console.error(`❌ Failed to add ${userId}: ${aclRes.msg}`);
             } else {
-                console.error(`⚠️ Failed to add ACL to Task Calendar: ${taskAclRes.msg}`);
+                console.log(`✅ Added ${userId}`);
             }
-
-        } else {
-            console.error(`❌ Failed to create Task Calendar: ${taskCalRes.msg}`);
         }
+        
+        // 3. Subscribe to the calendar (Bot needs to subscribe to manage it effectively? Bot is owner, auto-subscribed)
+        // Actually Bot is owner, so it has access.
 
-        console.log('\n🎉 Setup Complete!');
-        console.log(`Bot Calendar ID: ${botCalendarId}`);
-        // console.log(`Task Calendar ID: ${taskCalId}`); // Scope issue, printed above
+        console.log(`\n🎉 Shared Calendar Setup Complete! ID: ${calendarId}`);
 
     } catch (e) {
         console.error('Error:', e.message);
-        if (e.response) console.error(JSON.stringify(e.response.data));
+        if (e.response) console.error('Data:', JSON.stringify(e.response.data));
     }
 }
 
-setupSharedCalendar();
+main();

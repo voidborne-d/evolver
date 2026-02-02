@@ -51,12 +51,20 @@ class MoltbookAPI {
 
   async getProfile() { return this.get('/agents/me'); }
   async getFeed() { return this.get('/feed?sort=new'); }
-  async postUpdate(content, title = null) {
+  async postUpdate(content, title = null, submolt = 'general') {
     return this.post('/posts', { 
-      submolt: 'general', 
+      submolt: submolt, 
       title: title || 'Status Update', 
       content 
     });
+  }
+
+  async postComment(postId, content) {
+    return this.post(`/posts/${postId}/comments`, { content });
+  }
+
+  async deleteComment(commentId) {
+    return this.delete(`/comments/${commentId}`);
   }
 }
 

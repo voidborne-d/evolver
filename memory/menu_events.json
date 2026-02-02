@@ -228,5 +228,143 @@
       },
       "timestamp": 1769990148
     }
+  },
+  {
+    "timestamp": "2026-02-02T01:38:38.005Z",
+    "eventKey": "test_menu_button",
+    "userId": "ou_cdc63fe05e88c580aedead04d851fc04",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "1d5487f1d42f079f23ae589421789f41",
+      "token": "",
+      "create_time": "1769996317000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "test_menu_button",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_cdc63fe05e88c580aedead04d851fc04",
+          "union_id": "on_56bd32d8c4a7640c1a8c8b4b62b1b881",
+          "user_id": "af9dadf5"
+        }
+      },
+      "timestamp": 1769996317
+    }
+  },
+  {
+    "timestamp": "2026-02-02T01:43:47.377Z",
+    "eventKey": "test_menu_button",
+    "userId": "ou_cdc63fe05e88c580aedead04d851fc04",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "977204c598f537626757a4d081a3d46e",
+      "token": "",
+      "create_time": "1769996627000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "test_menu_button",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_cdc63fe05e88c580aedead04d851fc04",
+          "union_id": "on_56bd32d8c4a7640c1a8c8b4b62b1b881",
+          "user_id": "af9dadf5"
+        }
+      },
+      "timestamp": 1769996627
+    }
+  },
+  {
+    "timestamp": "2026-02-02T07:15:52.725Z",
+    "eventKey": "test_menu_button",
+    "userId": "ou_cdc63fe05e88c580aedead04d851fc04",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "076a9504f98935fc3228ad4572b4a92a",
+      "token": "",
+      "create_time": "1770016552000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "test_menu_button",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_cdc63fe05e88c580aedead04d851fc04",
+          "union_id": "on_56bd32d8c4a7640c1a8c8b4b62b1b881",
+          "user_id": "af9dadf5"
+        }
+      },
+      "timestamp": 1770016552
+    }
+  },
+  {
+    "timestamp": "2026-02-02T07:53:48.332Z",
+    "eventKey": "restart_gateway",
+    "userId": "ou_cdc63fe05e88c580aedead04d851fc04",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "a34e3de3f8f644a50c31b869af1e1665",
+      "token": "",
+      "create_time": "1770018828000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "restart_gateway",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_cdc63fe05e88c580aedead04d851fc04",
+          "union_id": "on_56bd32d8c4a7640c1a8c8b4b62b1b881",
+          "user_id": "af9dadf5"
+        }
+      },
+      "timestamp": 1770018828
+    }
+  },
+  {
+    "timestamp": "2026-02-02T08:32:48.429Z",
+    "eventKey": "restart_gateway",
+    "userId": "ou_cdc63fe05e88c580aedead04d851fc04",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "423c80ade2229921d522b68d7033bff5",
+      "token": "",
+      "create_time": "1770021168000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "restart_gateway",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_cdc63fe05e88c580aedead04d851fc04",
+          "union_id": "on_56bd32d8c4a7640c1a8c8b4b62b1b881",
+          "user_id": "af9dadf5"
+        }
+      },
+      "timestamp": 1770021168
+    }
+  },
+  {
+    "timestamp": "2026-02-02T09:09:05.022Z",
+    "eventKey": "test_menu_button",
+    "userId": "ou_afe40e0392a016822ad36277ec082bad",
+    "raw": {
+      "schema": "2.0",
+      "event_id": "7acd9df23e0cbd28373dbdd2f179ad21",
+      "token": "",
+      "create_time": "1770023344000",
+      "event_type": "application.bot.menu_v6",
+      "tenant_key": "17d8f81eef175740",
+      "app_id": "cli_a9f70f9a4a791bd1",
+      "event_key": "test_menu_button",
+      "operator": {
+        "operator_id": {
+          "open_id": "ou_afe40e0392a016822ad36277ec082bad",
+          "union_id": "on_7b13e4c370a02fc42448c3274470ad4d",
+          "user_id": "d9cafb7g"
+        }
+      },
+      "timestamp": 1770023344
+    }
   }
 ]

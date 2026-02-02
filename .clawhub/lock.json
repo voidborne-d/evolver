@@ -51,11 +51,15 @@
     },
     "capability-evolver": {
       "version": "1.0.31",
-      "installedAt": 1769996016956
+      "installedAt": 1769999792002
     },
     "cursor-agent": {
       "version": "2.1.0",
       "installedAt": 1769947231024
+    },
+    "pymupdf-pdf-parser-clawdbot-skill": {
+      "version": "1.0.0",
+      "installedAt": 1770019372741
     }
   }
 }

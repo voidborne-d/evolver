@@ -253,6 +253,17 @@ function getAutoTarget() {
 (async () => {
     let text = options.text;
     if (options.textFile) text = fs.readFileSync(options.textFile, 'utf8');
+    
+    // Support parsing JSON stringified text (for newline preservation from shell)
+    if (text && text.startsWith('"') && text.endsWith('"')) {
+        try {
+            text = JSON.parse(text);
+        } catch(e) {}
+    } else if (text && text.includes('\\n')) {
+        // Fallback for simple escaped newlines if not full JSON
+        text = text.replace(/\\n/g, '\n'); 
+    }
+
     if (!text && !process.stdin.isTTY) {
         text = '';
         for await (const chunk of process.stdin) text += chunk;

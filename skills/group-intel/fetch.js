@@ -128,7 +128,7 @@ program
                 
                 while (remaining > 0) {
                     const pageSize = Math.min(remaining, 50);
-                    let url = `https://open.feishu.cn/open-apis/im/v1/messages?container_id_type=chat&container_id=${chatId}&page_size=${pageSize}`;
+                    let url = `https://open.feishu.cn/open-apis/im/v1/messages?container_id_type=chat&container_id=${chatId}&page_size=${pageSize}&sort_type=ByCreateTimeDesc`;
                     if (pageToken) url += `&page_token=${pageToken}`;
 
                     const data = await fetchWithRetry(url, {
@@ -163,8 +163,13 @@ program
                         content = JSON.parse(content);
                     } catch(e) {}
                     
+                    let senderId = 'unknown';
+                    if (m.sender && m.sender.sender_id) {
+                         senderId = m.sender.sender_id.user_id || m.sender.sender_id.open_id || 'unknown';
+                    }
+
                     return {
-                        sender: m.sender.sender_id.user_id || m.sender.sender_id.open_id || 'unknown',
+                        sender: senderId,
                         type: m.msg_type,
                         time: new Date(parseInt(m.create_time)).toISOString(),
                         content: content

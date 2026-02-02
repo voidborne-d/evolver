@@ -1,0 +1,200 @@
+
+> group-intel@1.3.2 fetch
+> node fetch.js history oc_33b2e82369ad588a73ac0ded7ca87b2a --limit 20
+
+[
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T11:31:27.043Z",
+    "content": {
+      "text": "我们能最多三个音节解决吗"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T11:31:17.942Z",
+    "content": {
+      "text": "四个音节a"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T11:31:02.312Z",
+    "content": {
+      "text": "太绕口l"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T11:30:40.269Z",
+    "content": {
+      "text": "genesiscraft！"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-10-16T11:30:29.602Z",
+    "content": {
+      "image_key": "img_v2_c339e756-76a6-479e-bdd3-e3dc3ca019fg"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-10-16T10:56:50.033Z",
+    "content": {
+      "image_key": "img_v2_24ef3d34-4561-4eb2-82ea-0884b01a88dg"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T08:56:38.605Z",
+    "content": {
+      "text": "[看]"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T08:56:33.356Z",
+    "content": {
+      "text": "游戏名还是简单点么"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T08:56:25.712Z",
+    "content": {
+      "text": "这个适合论文题目，不开玩笑，ai这边的论文题目花的很"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "sticker",
+    "time": "2023-10-16T08:55:30.124Z",
+    "content": {
+      "file_key": "v2_5f08d217-c15d-45af-b11d-19feecd66b1g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-16T08:55:09.404Z",
+    "content": {
+      "text": "咱们的游戏名字不如叫这个吧：《在环世界运营AI小镇同时兼职怪物猎人还当上了宝可梦训练大师的我如何像异世界主角一样在泰拉瑞亚开二次元我的世界后宫》"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-10-14T10:47:01.448Z",
+    "content": {
+      "text": "这儿我更新了"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-10-14T10:46:56.057Z",
+    "content": {
+      "image_key": "img_v2_b47eb054-0ad7-4619-a9f9-570be509e35g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-10-13T02:39:28.027Z",
+    "content": {
+      "image_key": "img_v2_c918aa15-b195-4367-8c1f-1af690898c3g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-10-13T00:01:47.806Z",
+    "content": {
+      "template": "{from_user} invited {to_chatters} to this group. New members can see all chat history.",
+      "from_user": [
+        "李雨钊"
+      ],
+      "to_chatters": [
+        "王羽秋"
+      ],
+      "divider_text": {}
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-10-10T08:35:10.440Z",
+    "content": {
+      "template": "{from_user} updated the group photo.",
+      "from_user": [
+        "张昊阳"
+      ],
+      "to_chatters": [],
+      "divider_text": {}
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-10-10T08:32:46.625Z",
+    "content": {
+      "template": "{from_user} changed group name from \"{old_group_name}\" to \"{group_name}\".",
+      "from_user": [
+        "张昊阳"
+      ],
+      "to_chatters": [],
+      "divider_text": {}
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-10-10T08:32:13.550Z",
+    "content": {
+      "template": "{from_user} invited {to_chatters} to this group. New members can see all chat history.",
+      "from_user": [
+        "张昊阳"
+      ],
+      "to_chatters": [
+        "陈大可"
+      ],
+      "divider_text": {}
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-10-10T08:31:37.710Z",
+    "content": {
+      "template": "{from_user} invited {to_chatters} {from_chat} {from_dept} to this group. New members can see all chat history.",
+      "from_user": [
+        "张昊阳"
+      ],
+      "to_chatters": [],
+      "divider_text": {}
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-10-10T08:31:37.156Z",
+    "content": {
+      "template": "{from_user} started a group chat.",
+      "from_user": [
+        "张昊阳"
+      ],
+      "to_chatters": [],
+      "divider_text": {}
+    }
+  }
+]

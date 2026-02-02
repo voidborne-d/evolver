@@ -72,14 +72,16 @@ node skills/feishu-doc/index.js fetch "THE_URL"
 ```
 **Output:** The script returns JSON with Markdown content. Summarize or answer based on this.
 
-### 2. Sending Rich Messages (Cards) - MANDATORY DEFAULT
-**Rule:** ALWAYS use the `feishu-card` skill for ALL replies unless explicitly impossible (e.g., system crash).
+### 2. Sending Rich Messages (Post/富文本) - MANDATORY DEFAULT
+**Rule:** ALWAYS use the `feishu-post` skill for standard replies.
 **Trigger:** Any reply to the user.
-**Action:** Use the local `feishu-card` skill.
+**Action:** Use the local `feishu-post` skill.
 **Tool:**
 ```bash
-node skills/feishu-card/send.js --target "<target_id>" --text "YOUR_MARKDOWN" --title "OPTIONAL_TITLE"
+node skills/feishu-post/send.js --target "<target_id>" --text "YOUR_MARKDOWN" --title "OPTIONAL_TITLE"
 ```
+**Exception (Interactive Cards):** Use `feishu-card` ONLY when you need buttons, complex layouts, or interactive elements. For everything else (text, code, lists), use `feishu-post`.
+
 **Rules:**
 - `target_id`: Use the `to` field from the incoming message (works for `ou_` user or `oc_` group).
 - **Style:** Prefer Cards for structured data. Use simple text for short chat.

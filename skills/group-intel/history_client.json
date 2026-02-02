@@ -1,0 +1,416 @@
+
+> group-intel@1.3.2 fetch
+> node fetch.js history oc_be826504f2a5e5385d9ad56fb208538e --limit 50
+
+[
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T08:07:59.023Z",
+    "content": "This message was recalled"
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T08:01:20.734Z",
+    "content": {
+      "text": "看看是不是昊霖用的@_user_1"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T07:59:08.224Z",
+    "content": {
+      "text": "后续大家新建的UI界面和控件啥的，都放 UserInterfaces 文件夹下吧"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T07:57:00.185Z",
+    "content": {
+      "text": "这个文件夹的东西没人用了吧？没人用的话我就删了"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-12-04T07:56:34.650Z",
+    "content": {
+      "image_key": "img_v3_025q_a6ca6636-0c89-448b-8d9b-f43b86b8362g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T06:17:12.620Z",
+    "content": {
+      "text": "是的"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T06:16:53.956Z",
+    "content": {
+      "text": "之前的好像是没用了吧，现在应该是 ContainerComponent 和 HotbarCompnent ?"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T06:15:53.608Z",
+    "content": {
+      "text": "@_user_1 敬培，你和宇轩对接一下背包系统的使用吧"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-12-04T06:15:31.287Z",
+    "content": {
+      "image_key": "img_v3_025q_4aca8205-8da6-4807-90dd-bc8f2acad1fg"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T06:14:52.513Z",
+    "content": "This message was recalled"
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-12-04T06:14:52.226Z",
+    "content": "This message was recalled"
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:22:58.159Z",
+    "content": {
+      "text": "那就是不一定返回true了呀"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:22:42.293Z",
+    "content": {
+      "text": "那如果我后续要加判定条件呢"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:22:20.890Z",
+    "content": {
+      "text": "如果一定返回true的话，那就不需要这个返回值吧"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:22:00.829Z",
+    "content": {
+      "text": "不影响，就是看到这里了觉得很奇怪"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:21:45.955Z",
+    "content": {
+      "text": "有影响其他程序吗"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:21:40.639Z",
+    "content": {
+      "text": "额"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:21:18.502Z",
+    "content": {
+      "text": "那还要这个返回值干嘛？"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:19:16.386Z",
+    "content": {
+      "text": "嗯"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-30T07:14:45.642Z",
+    "content": {
+      "text": "这个地方只会return true？"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-11-30T07:14:32.778Z",
+    "content": {
+      "image_key": "img_v3_025m_f87f0816-7ab3-4634-b231-b01bdcb5d45g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:37:48.343Z",
+    "content": {
+      "text": "@_all"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:37:39.246Z",
+    "content": {
+      "text": "后续需求有新建的给策划配置用的蓝图表，都统一放到 Content/Table 目录下，然后 RowName 尽量使用整型数字的形式"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:27:44.179Z",
+    "content": {
+      "text": "这个优先级比PCG高"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:27:25.412Z",
+    "content": {
+      "text": "建造系统可以先研究一下表现端怎么实现"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:25:46.331Z",
+    "content": {
+      "text": "这个是案子"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:25:40.404Z",
+    "content": {
+      "text": "https://autogame.feishu.cn/sheets/WeEnsSyzvhspAStvZUvcwCxeneh?sheet=8ces7c&table=tblKuvWyLCqqLRDB&view=vewF3rRX6Q"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:24:42.672Z",
+    "content": {
+      "text": "@_user_1 PCG那边如果供应商暂时没有进度的话，可以先看一下建造系统的策划案"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:23:20.000Z",
+    "content": {
+      "text": "大概列了一下12.15版本的开发计划，把大家的分工都标注了一下"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-15T06:22:48.981Z",
+    "content": {
+      "text": "https://autogame.feishu.cn/wiki/Izekw0B2LiBre3kPVL3csbJcnLc"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T06:44:53.715Z",
+    "content": {
+      "text": "好"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T06:44:39.098Z",
+    "content": {
+      "text": "不要用全局变量"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T06:44:32.404Z",
+    "content": {
+      "text": "这个地方 ModeType 我看没有其他的文件用到吧，像这种的最好是申明为一个局部变量"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-11-14T06:43:48.761Z",
+    "content": {
+      "image_key": "img_v3_0256_2510fe0f-e7d7-4880-b3e0-74a424b4a39g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-11-14T04:12:31.324Z",
+    "content": {
+      "image_key": "img_v3_0256_bc1351a7-ba1f-4019-9cdb-2e06315b9dcg"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T04:10:23.875Z",
+    "content": {
+      "text": "我会把一些框架类的函数说明放在这个文档里"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-11-14T04:10:08.393Z",
+    "content": {
+      "image_key": "img_v3_0256_336cbab8-1cf5-456c-8379-505e03889f5g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T04:09:10.048Z",
+    "content": {
+      "text": "收到"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T04:07:48.408Z",
+    "content": {
+      "text": "然后客户端这边，我新增了一个客户端知识空间，大家有想共享的文档都可以放在里面"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T04:06:50.519Z",
+    "content": {
+      "text": "像这样用就行了"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-11-14T04:06:43.833Z",
+    "content": {
+      "image_key": "img_v3_0256_196e5b17-d531-4c95-8a08-6c067a045d5g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-14T04:06:29.996Z",
+    "content": {
+      "text": "lua 侧新增了代码端的事件管理器 EventMgr，可以在 lua 直接注册和分发事件"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-11-09T08:16:41.131Z",
+    "content": {
+      "template": "{from_user} invited {to_chatters} to this group. New members can see all chat history.",
+      "from_user": [
+        "张昊阳"
+      ],
+      "to_chatters": [
+        "廖宇轩"
+      ],
+      "divider_text": {}
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-09T07:36:23.621Z",
+    "content": {
+      "text": "1"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-09T07:36:14.228Z",
+    "content": {
+      "text": "不然看起来会有点迷惑[笑哭]"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-09T07:35:54.326Z",
+    "content": {
+      "text": "谁上传的有空的时候删除一下"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-09T07:35:01.953Z",
+    "content": {
+      "text": "无用"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "text",
+    "time": "2023-11-09T07:34:57.370Z",
+    "content": {
+      "text": "这个temp的有啥用？"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "image",
+    "time": "2023-11-09T07:34:47.881Z",
+    "content": {
+      "image_key": "img_v3_0251_9113d2d8-1b05-4ef9-b4e1-ff0aadee979g"
+    }
+  },
+  {
+    "sender": "unknown",
+    "type": "system",
+    "time": "2023-11-09T07:34:02.808Z",
+    "content": {
+      "template": "{from_user} invited {to_chatters} to this chat.",
+      "from_user": [
+        "宁鹏程"
+      ],
+      "to_chatters": [
+        "张昊阳",
+        "韩敬培",
+        "梁昊霖"
+      ],
+      "divider_text": {}
+    }
+  }
+]
