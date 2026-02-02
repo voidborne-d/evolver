@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { program } = require('commander');
-const FormData = require('form-data');
+// const FormData = require('form-data'); // Use Native Node.js FormData
 // Try to resolve ffmpeg-static from workspace root
 let ffmpegPath;
 const localStaticPath = path.resolve(__dirname, '../../bin/ffmpeg');
@@ -108,14 +108,16 @@ async function uploadImage(token, filePath) {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             const fileBuffer = fs.readFileSync(filePath);
-            const blob = new Blob([fileBuffer]);
+            const blob = new Blob([fileBuffer], { type: 'image/webp' }); // Add type hint
             const formData = new FormData();
             formData.append('image_type', 'message');
             formData.append('image', blob, path.basename(filePath));
 
             const res = await fetch('https://open.feishu.cn/open-apis/im/v1/images', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: { 
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData
             });
             const data = await res.json();
