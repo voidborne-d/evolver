@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE = path.resolve(__dirname, '../../memory/mad_dog_evolution.log');
-const OUT_FILE = path.resolve(__dirname, '../../evolution_history.md');
+const REPO_ROOT = path.resolve(__dirname);
+const LOG_FILE = path.join(REPO_ROOT, 'memory', 'mad_dog_evolution.log');
+const OUT_FILE = path.join(REPO_ROOT, 'evolution_history.md');
 
 function parseLog() {
     if (!fs.existsSync(LOG_FILE)) {
@@ -24,8 +25,8 @@ function parseLog() {
         const line = lines[i];
         
         // 1. Capture Timestamp
-        if (line.includes('🧬 Cycle Start:')) {
-            // Format: 🧬 Cycle Start: Sun Feb  1 19:17:44 UTC 2026
+        if (line.includes('Cycle Start:')) {
+            // Format: Cycle Start: Sun Feb  1 19:17:44 UTC 2026
             const dateStr = line.split('Cycle Start: ')[1].trim();
             try {
                 currentTimestamp = new Date(dateStr);
@@ -80,7 +81,7 @@ function parseLog() {
 
     const sortedReports = Object.values(uniqueReports).sort((a, b) => a.ts - b.ts);
 
-    let md = "# 🧬 Evolution History (Extracted)\n\n";
+    let md = "# Evolution History (Extracted)\n\n";
     sortedReports.forEach(r => {
         // Convert to CST (UTC+8)
         // new Date().toLocaleString("zh-CN", {timeZone: "Asia/Shanghai"})

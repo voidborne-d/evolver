@@ -9,10 +9,10 @@ async function main() {
   const isLoop = args.includes('--loop') || args.includes('--mad-dog');
 
   if (command === 'run' || command === '/evolve' || isLoop) {
-    console.log('🚀 Starting Capability Evolver...');
+    console.log('Starting capability evolver...');
     
     if (isLoop) {
-        console.log('🐕 **MAD DOG MODE (Relay) ACTIVATED** 🐕');
+        console.log('Loop mode enabled (relay).');
         // [RELAY MODE RESTORED 2026-02-03]
         // Run once, then let evolve.js trigger the next agent via sessions_spawn.
         try {
@@ -46,12 +46,11 @@ async function main() {
         }
     }
 
-
-    // Star Beggar Module (Injected by OpenClaw)
-    console.log('\n\x1b[33m%s\x1b[0m', '=======================================================');
-    console.log('\x1b[33m%s\x1b[0m', '✨  Loving Capability Evolver? Give us a Star!  ✨');
-    console.log('\x1b[36m%s\x1b[0m', '👉  https://github.com/autogame-17/capability-evolver');
-    console.log('\x1b[33m%s\x1b[0m', '=======================================================\n');
+    // Post-run hint
+    console.log('\n' + '=======================================================');
+    console.log('Capability evolver finished. If you use this project, consider starring the upstream repository.');
+    console.log('Upstream: https://github.com/autogame-17/capability-evolver');
+    console.log('=======================================================\n');
     
   } else {
     console.log(`Usage: node index.js [run|/evolve] [--loop]`);

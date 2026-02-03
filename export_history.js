@@ -1,10 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+const REPO_ROOT = path.resolve(__dirname);
+try {
+  require('dotenv').config({ path: path.join(REPO_ROOT, '.env') });
+} catch (e) {
+  // dotenv may be missing; proceed gracefully
+}
 
 const DOC_TOKEN = 'NwV1dKCLyoPdIvx3biRcKS1Jnwg'; // The new doc
-const LOG_FILE = path.resolve(__dirname, '../../memory/mad_dog_evolution.log');
-const TOKEN_FILE = path.resolve(__dirname, '../../memory/feishu_token.json');
+const LOG_FILE = path.join(REPO_ROOT, 'memory', 'mad_dog_evolution.log');
+const TOKEN_FILE = path.join(REPO_ROOT, 'memory', 'feishu_token.json');
 
 async function exportEvolutionHistory() {
     let token;
@@ -39,7 +44,7 @@ async function exportEvolutionHistory() {
     cycles.reverse();
 
     // Format for Feishu Doc (Markdown)
-    let markdown = "# 🧬 Evolution History (Mad Dog) \n\n> Auto-generated report of self-improvement cycles.\n\n";
+    let markdown = "# Evolution History (Loop)\n\n> Auto-generated report of self-improvement cycles.\n\n";
     
     // Split into chunks if too big
     const chunks = [];

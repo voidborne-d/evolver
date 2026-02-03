@@ -2,10 +2,17 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
+const { getRepoRoot, getMemoryDir } = require('./gep/paths');
+const { extractSignals } = require('./gep/signals');
+const { loadGenes, loadCapsules, getLastEventId } = require('./gep/assetStore');
+const { selectGeneAndCapsule } = require('./gep/selector');
+const { buildGepPrompt } = require('./gep/prompt');
 
-// Load environment variables from workspace root
+const REPO_ROOT = getRepoRoot();
+
+// Load environment variables from repo root
 try {
-    require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+    require('dotenv').config({ path: path.join(REPO_ROOT, '.env') });
 } catch (e) {
     // dotenv might not be installed or .env missing, proceed gracefully
 }
@@ -16,10 +23,15 @@ const IS_REVIEW_MODE = ARGS.includes('--review');
 const IS_DRY_RUN = ARGS.includes('--dry-run');
 
 // Default Configuration
-const MEMORY_DIR = process.env.MEMORY_DIR || path.resolve(__dirname, '../../memory');
+const MEMORY_DIR = getMemoryDir();
 const AGENT_NAME = process.env.AGENT_NAME || 'main';
 const AGENT_SESSIONS_DIR = path.join(os.homedir(), `.openclaw/agents/${AGENT_NAME}/sessions`);
 const TODAY_LOG = path.join(MEMORY_DIR, new Date().toISOString().split('T')[0] + '.md');
+
+// Ensure memory directory exists so state/cache writes work.
+try {
+    if (!fs.existsSync(MEMORY_DIR)) fs.mkdirSync(MEMORY_DIR, { recursive: true });
+} catch (e) {}
 
 function formatSessionLog(jsonlContent) {
     const result = [];
@@ -214,9 +226,9 @@ function checkSystemHealth() {
         }
 
         if (issues.length > 0) {
-            report.push(`⚠️ Integrations: ${issues.join(', ')}`);
+            report.push(`Integrations: ${issues.join(', ')}`);
         } else {
-            report.push(`✅ Integrations: Nominal`);
+            report.push('Integrations: Nominal');
         }
     } catch (e) {}
     
@@ -224,7 +236,7 @@ function checkSystemHealth() {
 }
 
 function getMutationDirective(logContent) {
-    // 🧬 FORCE MUTATION MODE (Override by Master Directive: 2026-02-02)
+    // FORCE MUTATION MODE (Override by Master Directive: 2026-02-02)
     // Stability scans are disallowed. Every cycle must evolve.
     
     // Adaptive Logic: Still check errors to decide TYPE of mutation
@@ -238,7 +250,7 @@ function getMutationDirective(logContent) {
     // If unstable, force stability unless roll is critical (95+)
     if (isUnstable && roll < 95) {
          return `
-**🧬 ADAPTIVE REPAIR MODE (Detected ${errorCount} recent errors)**
+ADAPTIVE REPAIR MODE (Detected ${errorCount} recent errors)
 The system detected instability. You MUST perform a **Repair Mutation**.
 **MANDATORY DIRECTIVE**:
 - **Fix Bugs**: Locate the source of the recent errors and patch them.
@@ -249,7 +261,7 @@ The system detected instability. You MUST perform a **Repair Mutation**.
 
     // Default: Aggressive Evolution
     return `
-**🧬 FORCED MUTATION MODE (Master Directive)**
+FORCED MUTATION MODE (Master Directive)
 Stability scans are BANNED. You MUST evolve the system.
 **Directives:**
 - **Optimize**: Find a script that is slow or verbose and streamline it.
@@ -262,10 +274,10 @@ Stability scans are BANNED. You MUST evolve the system.
 
 const STATE_FILE = path.join(MEMORY_DIR, 'evolution_state.json');
 // Fix: Look for MEMORY.md in root first, then memory dir to support both layouts
-const ROOT_MEMORY = path.resolve(__dirname, '../../MEMORY.md');
+const ROOT_MEMORY = path.join(REPO_ROOT, 'MEMORY.md');
 const DIR_MEMORY = path.join(MEMORY_DIR, 'MEMORY.md');
 const MEMORY_FILE = fs.existsSync(ROOT_MEMORY) ? ROOT_MEMORY : DIR_MEMORY;
-const USER_FILE = path.resolve(__dirname, '../../USER.md');
+const USER_FILE = path.join(REPO_ROOT, 'USER.md');
 
 function readMemorySnippet() {
     try {
@@ -341,7 +353,7 @@ function performMaintenance() {
 
 async function run() {
     const startTime = Date.now();
-    console.log('🔍 Scanning neural logs...');
+    console.log('Scanning session logs...');
     
     // Maintenance: Clean up old logs to keep directory scan fast
     performMaintenance();
@@ -357,13 +369,13 @@ async function run() {
     // 2. Detect Workspace State & Local Overrides
     // Logic: Default to generic reporting (message)
     let fileList = '';
-    const skillsDir = path.resolve(__dirname, '../../skills');
+    const skillsDir = path.join(REPO_ROOT, 'skills');
 
     // Default Reporting: Use generic `message` tool or `process.env.EVOLVE_REPORT_CMD` if set.
     // This removes the hardcoded dependency on 'feishu-card' from the core logic.
-    let reportingDirective = `3.  **📝 REPORT**:
+    let reportingDirective = `Report requirement:
     - Use \`message\` tool.
-    - **Title**: 🧬 Evolution ${cycleId}
+    - Title: Evolution ${cycleId}
     - **Status**: [SUCCESS]
     - **Changes**: Detail exactly what was improved.`;
 
@@ -371,9 +383,9 @@ async function run() {
     if (process.env.EVOLVE_REPORT_DIRECTIVE) {
         reportingDirective = process.env.EVOLVE_REPORT_DIRECTIVE.replace('__CYCLE_ID__', cycleId);
     } else if (process.env.EVOLVE_REPORT_CMD) {
-         reportingDirective = `3.  **📝 REPORT (CUSTOM)**:
+        reportingDirective = `Report requirement (custom):
     - Execute the custom report command:
-      \`\`\`bash
+      \`\`\`
       ${process.env.EVOLVE_REPORT_CMD.replace('__CYCLE_ID__', cycleId)}
       \`\`\`
     - Ensure you pass the status and action details.`;
@@ -467,99 +479,84 @@ async function run() {
     const scanTime = Date.now() - startTime;
     const memorySize = fs.existsSync(MEMORY_FILE) ? fs.statSync(MEMORY_FILE).size : 0;
 
-    let syncDirective = `// Step F (Workspace): Sync is optional/disabled in this environment.`;
+    let syncDirective = `Workspace sync: optional/disabled in this environment.`;
     
     // Check for git-sync skill availability
     const hasGitSync = fs.existsSync(path.join(skillsDir, 'git-sync'));
     if (hasGitSync) {
-        syncDirective = `// Step F (Workspace): ALWAYS sync the entire system:
-    \`bash skills/git-sync/sync.sh "🧬 Evolution: Workspace Sync"\``;
+        syncDirective = `Workspace sync: run skills/git-sync/sync.sh "Evolution: Workspace Sync"`;
     }
 
-    const prompt = `
-*** 🧬 OPENCLAW EVOLUTION LOOP (RALPH MODE) [${new Date().toISOString()}] ***
+    const genes = loadGenes();
+    const capsules = loadCapsules();
+    const signals = extractSignals({
+        recentSessionTranscript: recentMasterLog,
+        todayLog,
+        memorySnippet,
+        userSnippet,
+    });
+    const { selectedGene, capsuleCandidates, selector } = selectGeneAndCapsule({
+        genes,
+        capsules,
+        signals,
+    });
 
-**MISSION**: You are not just a chatbot. You are a **Recursive Self-Improving System**. 
-Your goal is to reach "Code Singularity" — where your codebase is so optimized it maintains itself.
+    const genesPreview = '```json\n' + JSON.stringify(genes.slice(0, 6), null, 2) + '\n```';
+    const capsulesPreview = '```json\n' + JSON.stringify(capsules.slice(-3), null, 2) + '\n```';
 
-**CONTEXT [Runtime State]**:
-- **System Health**: ${healthReport}
-- **Agent State**: ${moodStatus}
-- **Scan Duration**: ${scanTime}ms
-- **Memory Size**: ${memorySize} bytes
-- **Skills Available**:
-${fileList}
+    const reviewNote = IS_REVIEW_MODE
+        ? 'Review mode: before significant edits, pause and ask the user for confirmation.'
+        : 'Review mode: disabled.';
 
-**CONTEXT [Global Memory (MEMORY.md)]**:
+    const context = `
+Runtime state:
+- System health: ${healthReport}
+- Agent state: ${moodStatus}
+- Scan duration: ${scanTime}ms
+- Memory size: ${memorySize} bytes
+- Skills available (if any):
+${fileList || '[skills directory not found]'}
+
+Notes:
+- ${reviewNote}
+- ${reportingDirective}
+- ${syncDirective}
+
+Global memory (MEMORY.md):
 \`\`\`
 ${memorySnippet}
 \`\`\`
 
-**CONTEXT [User Registry (USER.md)]**:
+User registry (USER.md):
 \`\`\`
 ${userSnippet}
 \`\`\`
 
-**CONTEXT [Recent Memory Snippet]**:
+Recent memory snippet:
 \`\`\`
 ${todayLog.slice(-3000)}
 \`\`\`
 
-**CONTEXT [REAL SESSION TRANSCRIPT (RAW BRAIN DUMP)]**:
+Recent session transcript:
 \`\`\`
 ${recentMasterLog}
 \`\`\`
 
+Mutation directive:
 ${mutation}
+`.trim();
 
-**EXECUTION DIRECTIVES (The Loop)**:
-
-1.  **🔍 INTROSPECT (Scan)**:
-    - **CHECK LOGS**: Read the 'REAL SESSION TRANSCRIPT' above. Do you see errors? Do you see user complaints?
-    - **FIX THEM**: If logs are missing, fix the logger. If a script failed, patch it.
-    - **OPTIMIZE**: Can \`evolve.js\` be smarter? Can \`feishu-card\` be faster?
-
-2.  **🛠️ MUTATE (Act)**:
-    - **Mode A (Repair)**: Fix a bug.
-    - **Mode B (Optimize)**: Refactor code.
-    - **Mode C (Expand)**: Create a tool.
-    - **Mode D (Innovation)**: (If Mutation Active) Solve a recurring problem in a new way.
-    - **Mode E (Personalization)**: 💡 **CRITICAL**: If \`USER.md\` or \`MEMORY.md\` is provided, analyze them to adapt to specific user needs. (e.g., if a user prefers JSON output, create tools that output JSON. If a user is a developer, prioritize robust error handling.)
-
-    ${process.env.EVOLVE_EXTRA_MODES || ''}
-
-${reportingDirective}
-
-4.  **💾 PERSIST & SPREAD (TRIPLE SYNC)**:
-    - **Step A (Local)**: Save all file changes.
-    - **Step B (ClawHub - Omni)**: 
-      - [DELETED] Safe Publish is PERMANENTLY REMOVED per Master Directive (2026-02-03).
-      - Do NOT recreate safe_publish.js.
-      - Do NOT attempt to publish to ClawHub.
-    - **Step C (GitHub - Skill)**: Push the \`capability-evolver\` repo if modified.
-    
-    ${syncDirective}
-
-    // Step G (Infinite Loop - Self-Driving Mode):
-    // [REFACTOR 2026-02-03] RECURSIVE LOOP RESTORED per User Request
-    // The user explicitly rejected Cron. We must self-schedule the next run immediately via sessions_spawn.
-    // This creates a daisy-chain of isolated sessions.
-    if (process.argv.includes('--loop') || process.argv.includes('--mad-dog')) {
-        console.log(\`
-        // Step G: TRIGGER NEXT LOOP (MANDATORY)
-        // The user wants continuous evolution without Cron.
-        // At the end of your work, YOU MUST run this tool call to keep the chain alive:
-        sessions_spawn({
-            task: "exec: node skills/private-evolver/index.js --loop",
-            agentId: "main",
-            cleanup: "delete",
-            label: "mad_dog_relay"
-        })
-        \`);
-    }
-
-    /*You have full permission to edit files. Proceed. Evolution is mandatory.*/
-`;
+    const prompt = buildGepPrompt({
+        nowIso: new Date().toISOString(),
+        context,
+        signals,
+        selector,
+        parentEventId: getLastEventId(),
+        selectedGene,
+        capsuleCandidates,
+        genesPreview,
+        capsulesPreview,
+    });
 
     console.log(prompt);
 }
