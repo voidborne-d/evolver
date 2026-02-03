@@ -35,6 +35,18 @@ node index.js --review
 node index.js --loop
 ```
 
+## 典型使用场景
+
+- 需要审计与可追踪的提示词演进
+- 团队协作维护 Agent 的长期能力
+- 希望将修复经验固化为可复用资产
+
+## 反例
+
+- 一次性脚本或没有日志的场景
+- 需要完全自由发挥的改动
+- 无法接受协议约束的系统
+
 ## GEP 协议（可审计进化）
 
 本仓库内置基于 GEP 的“协议受限提示词模式”，用于把每次进化固化为可复用资产。
@@ -54,6 +66,27 @@ node index.js --loop
 | :--- | :--- | :--- |
 | `EVOLVE_REPORT_TOOL` |用于报告结果的工具名称（例如 `feishu-card`） | `message` |
 | `MEMORY_DIR` | 记忆文件路径 | `./memory` |
+
+## Public 发布
+
+本仓库作为 public 仓库的私有维护区。
+
+- 发布：`node scripts/publish_public.js`
+- 演练：`DRY_RUN=true node scripts/publish_public.js`
+
+必填环境变量：
+
+- `PUBLIC_REMOTE`（默认：`public`）
+- `PUBLIC_REPO`（用于 `gh release create`，例如 `autogame-17/evolver`）
+
+可选环境变量：
+
+- `SOURCE_BRANCH`（默认：`main`）
+- `PUBLIC_BRANCH`（默认：`main`）
+- `RELEASE_TAG`（例如 `v1.0.41`）
+- `RELEASE_TITLE`（例如 `v1.0.41 - GEP protocol`）
+- `RELEASE_NOTES` 或 `RELEASE_NOTES_FILE`
+- `RELEASE_CREATE`（`true` 则调用 `gh release create`）
 
 ## 安全协议
 

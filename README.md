@@ -1,37 +1,75 @@
 # 🧬 Capability Evolver
 
+![Capability Evolver Cover](assets/cover.png)
+
 [Chinese Docs](README.zh-CN.md)
 
 **"Evolution is not optional. Adapt or die."**
 
-The **Capability Evolver** is a meta-skill that allows OpenClaw agents to inspect their own runtime history, identify failures or inefficiencies, and autonomously write new code or update their own memory to improve performance.
+**Three lines**
+- **What it is**: A protocol-constrained self-evolution engine for AI agents.
+- **Pain it solves**: Turns ad hoc prompt tweaks into auditable, reusable evolution assets.
+- **Use in 30 seconds**: `node index.js` to generate a GEP-guided evolution prompt.
 
-## Features
+Keywords: protocol-constrained evolution, audit trail, genes and capsules, prompt governance.
 
-- **Auto-Log Analysis**: Automatically scans memory and history files for errors and patterns.
-- **Self-Repair**: Detects crashes and suggests patches.
-- GEP Protocol: Standardized evolution with reusable assets.
-- **One-Command Evolution**: Just run `/evolve` (or `node index.js`).
+## Try It Now (Minimal)
 
-## Usage
-
-### Standard Run (Automated)
-Runs the evolution cycle. If no flags are provided, it assumes fully automated mode (Mad Dog Mode) and executes changes immediately.
 ```bash
 node index.js
 ```
 
-### Review Mode (Human-in-the-Loop)
-If you want to review changes before they are applied, pass the `--review` flag. The agent will pause and ask for confirmation.
-```bash
-node index.js --review
-```
+## What It Does
 
-### Mad Dog Mode (Continuous Loop)
-To run in an infinite loop (e.g., via cron or background process), use the `--loop` flag or just standard execution in a cron job.
-```bash
-node index.js --loop
-```
+The **Capability Evolver** inspects runtime history, extracts signals, selects a Gene/Capsule, and emits a strict GEP protocol prompt to guide safe evolution.
+
+## Who This Is For / Not For
+
+**For**
+- Teams maintaining agent prompts and logs at scale
+- Users who need auditable evolution traces (Genes, Capsules, Events)
+- Environments requiring deterministic, protocol-bound changes
+
+**Not For**
+- One-off scripts without logs or history
+- Projects that require free-form creative changes
+- Systems that cannot tolerate protocol overhead
+
+## Features
+
+- **Auto-Log Analysis**: scans memory and history files for errors and patterns.
+- **Self-Repair Guidance**: emits repair-focused directives from signals.
+- **GEP Protocol**: standardized evolution with reusable assets.
+- **One-Command Evolution**: `node index.js` to generate the prompt.
+
+## Typical Use Cases
+
+- Harden a flaky agent loop by enforcing validation before edits
+- Encode recurring fixes as reusable Genes and Capsules
+- Produce auditable evolution events for review or compliance
+
+## Anti-Examples
+
+- Rewriting entire subsystems without signals or constraints
+- Using the protocol as a generic task runner
+- Producing changes without recording EvolutionEvent
+
+## FAQ
+
+**Does this edit code automatically?**
+No. It generates a protocol-bound prompt and assets that guide evolution.
+
+**Do I need to use all GEP assets?**
+No. You can start with default Genes and extend over time.
+
+**Is this safe in production?**
+Use review mode and validation steps. Treat it as a safety-focused evolution tool, not a live patcher.
+
+## Roadmap
+
+- Add a one-minute demo workflow
+- Add a public changelog
+- Add a comparison table vs alternatives
 
 ## GEP Protocol (Auditable Evolution)
 
@@ -43,6 +81,44 @@ This repo includes a protocol-constrained prompt mode based on GEP (Genome Evolu
   - `assets/gep/events.jsonl`
 - **Selector** logic uses extracted signals to prefer existing Genes/Capsules and emits a JSON selector decision in the prompt.
 - **Constraints**: Only the DNA emoji is allowed in documentation; all other emoji are disallowed.
+
+## Usage
+
+### Standard Run (Automated)
+```bash
+node index.js
+```
+
+### Review Mode (Human-in-the-Loop)
+```bash
+node index.js --review
+```
+
+### Continuous Loop
+```bash
+node index.js --loop
+```
+
+## Public Release
+
+This repo is a private staging area for the public repository.
+
+- Publish: `node scripts/publish_public.js`
+- Dry run: `DRY_RUN=true node scripts/publish_public.js`
+
+Required env vars:
+
+- `PUBLIC_REMOTE` (default: `public`)
+- `PUBLIC_REPO` (for release creation with `gh`, e.g. `autogame-17/evolver`)
+
+Optional env vars:
+
+- `SOURCE_BRANCH` (default: `main`)
+- `PUBLIC_BRANCH` (default: `main`)
+- `RELEASE_TAG` (e.g. `v1.0.41`)
+- `RELEASE_TITLE` (e.g. `v1.0.41 - GEP protocol`)
+- `RELEASE_NOTES` or `RELEASE_NOTES_FILE`
+- `RELEASE_CREATE` (`true` to call `gh release create`)
 
 ## Configuration & Decoupling
 
@@ -57,4 +133,14 @@ Set `EVOLVE_REPORT_TOOL` in your `.env` file:
 EVOLVE_REPORT_TOOL=feishu-card
 ```
 
-**Method 2: Dynamic Detection*
+**Method 2: Dynamic Detection**
+The script automatically detects if compatible local skills (like `skills/feishu-card`) exist in your workspace and upgrades its behavior accordingly.
+
+## License
+
+MIT
+
+## License
+
+MIT
+
