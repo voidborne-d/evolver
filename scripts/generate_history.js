@@ -4,7 +4,7 @@ const path = require('path');
 
 // Separator for git log parsing (something unlikely to be in commit messages)
 const SEP = '|||';
-const REPO_ROOT = path.resolve(__dirname);
+const REPO_ROOT = path.resolve(__dirname, '..');
 
 try {
     // Git command:
@@ -24,7 +24,7 @@ try {
     
     let markdown = '# Evolution History (Time Sequence)\n\n';
     markdown += '> Filter: "Evolution"\n';
-    markdown += '> **Timezone**: CST (UTC+8)\n\n';
+    markdown += '> Timezone: CST (UTC+8)\n\n';
     
     let count = 0;
 
@@ -48,13 +48,13 @@ try {
         const timeStr = cstDate.toISOString().replace('T', ' ').substring(0, 19);
 
         markdown += `## ${timeStr}\n`;
-        markdown += `- **Commit**: \`${hash.substring(0, 7)}\`\n`;
-        markdown += `- **Subject**: ${subject}\n`;
+        markdown += `- Commit: \`${hash.substring(0, 7)}\`\n`;
+        markdown += `- Subject: ${subject}\n`;
         
         if (body.trim()) {
             // Indent body for better readability
             const formattedBody = body.trim().split('\n').map(l => `> ${l}`).join('\n');
-            markdown += `- **Details**:\n${formattedBody}\n`;
+            markdown += `- Details:\n${formattedBody}\n`;
         }
         markdown += '\n';
         count++;
@@ -72,3 +72,4 @@ try {
     console.error('Error generating history:', e.message);
     process.exit(1);
 }
+

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const REPO_ROOT = path.resolve(__dirname);
+const REPO_ROOT = path.resolve(__dirname, '..');
 try {
   require('dotenv').config({ path: path.join(REPO_ROOT, '.env') });
 } catch (e) {
@@ -95,3 +95,4 @@ async function exportEvolutionHistory() {
 }
 
 exportEvolutionHistory();
+

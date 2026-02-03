@@ -1,7 +1,4 @@
-const path = require('path');
-const evolve = require('./evolve');
-const { execSync } = require('child_process');
-const fs = require('fs');
+const evolve = require('./src/evolve');
 
 async function main() {
   const args = process.argv.slice(2);

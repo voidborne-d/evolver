@@ -1,4 +1,6 @@
-# Capability Evolver
+# 🧬 Capability Evolver
+
+[Chinese Docs](README.zh-CN.md)
 
 **"Evolution is not optional. Adapt or die."**
 
@@ -8,7 +10,7 @@ The **Capability Evolver** is a meta-skill that allows OpenClaw agents to inspec
 
 - **Auto-Log Analysis**: Automatically scans memory and history files for errors and patterns.
 - **Self-Repair**: Detects crashes and suggests patches.
-- **Genetic Mutation**: Configurable chance to introduce "creative noise".
+- GEP Protocol: Standardized evolution with reusable assets.
 - **One-Command Evolution**: Just run `/evolve` (or `node index.js`).
 
 ## Usage
@@ -16,31 +18,31 @@ The **Capability Evolver** is a meta-skill that allows OpenClaw agents to inspec
 ### Standard Run (Automated)
 Runs the evolution cycle. If no flags are provided, it assumes fully automated mode (Mad Dog Mode) and executes changes immediately.
 ```bash
-node skills/capability-evolver/index.js
+node index.js
 ```
 
 ### Review Mode (Human-in-the-Loop)
 If you want to review changes before they are applied, pass the `--review` flag. The agent will pause and ask for confirmation.
 ```bash
-node skills/capability-evolver/index.js --review
+node index.js --review
 ```
 
 ### Mad Dog Mode (Continuous Loop)
 To run in an infinite loop (e.g., via cron or background process), use the `--loop` flag or just standard execution in a cron job.
 ```bash
-node skills/capability-evolver/index.js --loop
+node index.js --loop
 ```
 
 ## GEP Protocol (Auditable Evolution)
 
 This repo includes a protocol-constrained prompt mode based on GEP (Genome Evolution Protocol).
 
-- **Structured assets** live in `gep_assets/`:
-  - `gep_assets/genes.json`
-  - `gep_assets/capsules.json`
-  - `gep_assets/events.jsonl`
+- **Structured assets** live in `assets/gep/`:
+  - `assets/gep/genes.json`
+  - `assets/gep/capsules.json`
+  - `assets/gep/events.jsonl`
 - **Selector** logic uses extracted signals to prefer existing Genes/Capsules and emits a JSON selector decision in the prompt.
-- **Constraints**: Do not use emoji in any created or modified code or documentation.
+- **Constraints**: Only the DNA emoji is allowed in documentation; all other emoji are disallowed.
 
 ## Configuration & Decoupling
 

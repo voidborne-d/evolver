@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const REPO_ROOT = path.resolve(__dirname);
+const REPO_ROOT = path.resolve(__dirname, '..');
 const LOG_FILE = path.join(REPO_ROOT, 'evolution_history_full.md');
 const OUT_FILE = path.join(REPO_ROOT, 'evolution_detailed_report.md');
 
@@ -118,3 +118,4 @@ function analyzeEvolution() {
 }
 
 analyzeEvolution();
+

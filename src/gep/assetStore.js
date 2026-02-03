@@ -47,7 +47,7 @@ function getDefaultGenes() {
           max_files: 12,
           forbidden_paths: ['.git', 'node_modules'],
         },
-        validation: ['node index.js run', 'node -e "require(\\\"./evolve\\\")"'],
+        validation: ['node index.js run', 'node -e "require(\\"./src/evolve\\")"'],
       },
       {
         type: 'Gene',

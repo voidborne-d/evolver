@@ -1,10 +1,10 @@
 ---
 name: capability-evolver
-description: A self-evolution engine for AI agents. Analyzes runtime history to identify improvements and introduces randomized "mutations" to break local optima.
+description: A self-evolution engine for AI agents. Analyzes runtime history to identify improvements and applies protocol-constrained evolution.
 tags: [meta, ai, self-improvement, core]
 ---
 
-# Capability Evolver
+# 🧬 Capability Evolver
 
 **"Evolution is not optional. Adapt or die."**
 
@@ -14,7 +14,7 @@ The **Capability Evolver** is a meta-skill that allows OpenClaw agents to inspec
 
 - **Auto-Log Analysis**: Automatically scans memory and history files for errors and patterns.
 - **Self-Repair**: Detects crashes and suggests patches.
-- **Genetic Mutation**: Configurable chance to introduce "creative noise".
+- GEP Protocol: Standardized evolution with reusable assets.
 - **One-Command Evolution**: Just run `/evolve` (or `node index.js`).
 
 ## Usage
@@ -22,28 +22,32 @@ The **Capability Evolver** is a meta-skill that allows OpenClaw agents to inspec
 ### Standard Run (Automated)
 Runs the evolution cycle. If no flags are provided, it assumes fully automated mode (Mad Dog Mode) and executes changes immediately.
 ```bash
-node skills/capability-evolver/index.js
+node index.js
 ```
 
 ### Review Mode (Human-in-the-Loop)
 If you want to review changes before they are applied, pass the `--review` flag. The agent will pause and ask for confirmation.
 ```bash
-node skills/capability-evolver/index.js --review
+node index.js --review
 ```
 
 ### Mad Dog Mode (Continuous Loop)
 To run in an infinite loop (e.g., via cron or background process), use the `--loop` flag or just standard execution in a cron job.
 ```bash
-node skills/capability-evolver/index.js --loop
+node index.js --loop
 ```
 
 ## GEP Protocol (Auditable Evolution)
 
 This package embeds a protocol-constrained evolution prompt (GEP) and a local, structured asset store:
 
-- `gep_assets/genes.json`: reusable Gene definitions
-- `gep_assets/capsules.json`: success capsules to avoid repeating reasoning
-- `gep_assets/events.jsonl`: append-only evolution events (tree-like via parent id)
+- `assets/gep/genes.json`: reusable Gene definitions
+- `assets/gep/capsules.json`: success capsules to avoid repeating reasoning
+- `assets/gep/events.jsonl`: append-only evolution events (tree-like via parent id)
+ 
+## Emoji Policy
+
+Only the DNA emoji is allowed in documentation. All other emoji are disallowed.
 
 ## Configuration & Decoupling
 
