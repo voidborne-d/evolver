@@ -1,8 +1,0 @@
-{
-  "name": "private-evolver",
-  "version": "1.0.0",
-  "description": "Private backup of the Capability Evolver (Forced Mutation Mode)",
-  "private": true,
-  "main": "index.js",
-  "dependencies": {}
-}

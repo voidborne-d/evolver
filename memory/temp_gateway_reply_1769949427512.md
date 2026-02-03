@@ -1,1 +1,0 @@
-😿 Failed to send sticker: Command failed: node "/home/crishaocredits/.openclaw/workspace/skills/feishu-sticker/send.js" --target "unknown" --path "/home/crishaocredits/.openclaw/workspace/media/stickers/salute.jpg"
