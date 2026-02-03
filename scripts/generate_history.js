@@ -4,26 +4,27 @@ const path = require('path');
 
 // Separator for git log parsing (something unlikely to be in commit messages)
 const SEP = '|||';
+const REPO_ROOT = path.resolve(__dirname, '..');
 
 try {
     // Git command:
     // --reverse: Oldest to Newest (Time Sequence)
     // --grep: Filter by keyword
     // --format: Hash, Date (ISO), Author, Subject, Body
-    const cmd = `git log --reverse --grep="🧬 Evolution" --format="%H${SEP}%ai${SEP}%an${SEP}%s${SEP}%b"`;
+    const cmd = `git log --reverse --grep="Evolution" --format="%H${SEP}%ai${SEP}%an${SEP}%s${SEP}%b"`;
     
     console.log('Executing git log...');
     const output = execSync(cmd, { 
         encoding: 'utf8', 
-        cwd: path.resolve(__dirname, '../../'),
+        cwd: REPO_ROOT,
         maxBuffer: 1024 * 1024 * 10 // 10MB buffer just in case
     });
 
     const entries = output.split('\n').filter(line => line.trim().length > 0);
     
-    let markdown = '# 🧬 Evolution History (Time Sequence)\n\n';
-    markdown += '> **Filter**: "🧬 Evolution"\n';
-    markdown += '> **Timezone**: CST (UTC+8)\n\n';
+    let markdown = '# Evolution History (Time Sequence)\n\n';
+    markdown += '> Filter: "Evolution"\n';
+    markdown += '> Timezone: CST (UTC+8)\n\n';
     
     let count = 0;
 
@@ -47,19 +48,21 @@ try {
         const timeStr = cstDate.toISOString().replace('T', ' ').substring(0, 19);
 
         markdown += `## ${timeStr}\n`;
-        markdown += `- **Commit**: \`${hash.substring(0, 7)}\`\n`;
-        markdown += `- **Subject**: ${subject}\n`;
+        markdown += `- Commit: \`${hash.substring(0, 7)}\`\n`;
+        markdown += `- Subject: ${subject}\n`;
         
         if (body.trim()) {
             // Indent body for better readability
             const formattedBody = body.trim().split('\n').map(l => `> ${l}`).join('\n');
-            markdown += `- **Details**:\n${formattedBody}\n`;
+            markdown += `- Details:\n${formattedBody}\n`;
         }
         markdown += '\n';
         count++;
     });
 
-    const outPath = path.resolve(__dirname, '../../memory/evolution_history.md');
+    const outDir = path.join(REPO_ROOT, 'memory');
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+    const outPath = path.join(outDir, 'evolution_history.md');
     fs.writeFileSync(outPath, markdown);
     
     console.log(`Successfully generated report with ${count} entries.`);
@@ -69,3 +72,4 @@ try {
     console.error('Error generating history:', e.message);
     process.exit(1);
 }
+

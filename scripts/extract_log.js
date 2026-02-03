@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE = path.resolve(__dirname, '../../memory/mad_dog_evolution.log');
-const OUT_FILE = path.resolve(__dirname, '../../evolution_history.md');
+const REPO_ROOT = path.resolve(__dirname, '..');
+const LOG_FILE = path.join(REPO_ROOT, 'memory', 'mad_dog_evolution.log');
+const OUT_FILE = path.join(REPO_ROOT, 'evolution_history.md');
 
 function parseLog() {
     if (!fs.existsSync(LOG_FILE)) {
@@ -24,8 +25,8 @@ function parseLog() {
         const line = lines[i];
         
         // 1. Capture Timestamp
-        if (line.includes('🧬 Cycle Start:')) {
-            // Format: 🧬 Cycle Start: Sun Feb  1 19:17:44 UTC 2026
+        if (line.includes('Cycle Start:')) {
+            // Format: Cycle Start: Sun Feb  1 19:17:44 UTC 2026
             const dateStr = line.split('Cycle Start: ')[1].trim();
             try {
                 currentTimestamp = new Date(dateStr);
@@ -34,24 +35,6 @@ function parseLog() {
             }
         }
 
-        // 2. Capture Command
-        // The command is usually inside the prompt block, but it reflects what the agent IS TOLD to do.
-        // However, the agent's *actual* tool call would be in the transcript sections (which are truncated).
-        // BUT, the `mad_dog_evolution.log` is generated *by the evolver script* to log the PROMPT it generated.
-        // It does NOT contain the Agent's *response* (the actual execution).
-        // Wait... does it?
-        // Let's check the tail again.
-        // It ends with `*You have full permission to edit files...*`.
-        // This confirms `mad_dog_evolution.log` ONLY contains the PROMPT.
-        
-        // This means I cannot know if the agent *actually* sent the message or what the *exact* text was if the agent modified it.
-        // BUT, the prompt *contains* the pre-generated text: `... --text "Status: [RUNNING]\nAction: ..."`
-        // The `evolve.js` script *generates* this status report *before* asking the LLM.
-        // The prompt says: "3. REPORT (MANDATORY): ... Command: node ... --text '...'"
-        // So the text inside the prompt IS the text the script calculated.
-        // The agent just executes it.
-        // So extracting from the prompt is accurate for "what was intended/generated".
-        
         const match = line.match(cmdRegex);
         if (match) {
             const title = match[1];
@@ -72,7 +55,6 @@ function parseLog() {
     }
 
     // Deduplicate by ID (keep latest timestamp?)
-    // Actually, prompts are appended.
     const uniqueReports = {};
     reports.forEach(r => {
         uniqueReports[r.id] = r;
@@ -80,10 +62,9 @@ function parseLog() {
 
     const sortedReports = Object.values(uniqueReports).sort((a, b) => a.ts - b.ts);
 
-    let md = "# 🧬 Evolution History (Extracted)\n\n";
+    let md = "# Evolution History (Extracted)\n\n";
     sortedReports.forEach(r => {
         // Convert to CST (UTC+8)
-        // new Date().toLocaleString("zh-CN", {timeZone: "Asia/Shanghai"})
         const cstDate = r.ts.toLocaleString("zh-CN", {
             timeZone: "Asia/Shanghai", 
             hour12: false,
@@ -101,3 +82,4 @@ function parseLog() {
 }
 
 parseLog();
+
