@@ -187,13 +187,15 @@ function main() {
   rewritePackageJson(outDirAbs);
   validateNoPrivatePaths(outDirAbs);
 
-  // Write build manifest for traceability.
+  // Write build manifest for private verification (do not include in dist-public/).
   const buildInfo = {
     built_at: new Date().toISOString(),
     outDir,
     files: copied.sort(),
   };
-  fs.writeFileSync(path.join(outDirAbs, 'BUILD_INFO.json'), JSON.stringify(buildInfo, null, 2) + '\n', 'utf8');
+  const privateDir = path.join(REPO_ROOT, 'memory');
+  ensureDir(privateDir);
+  fs.writeFileSync(path.join(privateDir, 'public_build_info.json'), JSON.stringify(buildInfo, null, 2) + '\n', 'utf8');
 
   process.stdout.write(`Built public output at ${outDir}\n`);
 }
