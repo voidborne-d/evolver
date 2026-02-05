@@ -4,11 +4,26 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { getRepoRoot, getMemoryDir } = require('./gep/paths');
 const { extractSignals } = require('./gep/signals');
-const { loadGenes, loadCapsules, getLastEventId, appendCandidateJsonl, readRecentCandidates } = require('./gep/assetStore');
-const { selectGeneAndCapsule } = require('./gep/selector');
+const {
+  loadGenes,
+  loadCapsules,
+  getLastEventId,
+  appendCandidateJsonl,
+  readRecentCandidates,
+  readRecentExternalCandidates,
+} = require('./gep/assetStore');
+const { selectGeneAndCapsule, matchPatternToSignals } = require('./gep/selector');
 const { buildGepPrompt } = require('./gep/prompt');
 const { extractCapabilityCandidates, renderCandidatesPreview } = require('./gep/candidates');
-const { getMemoryAdvice, recordAttempt, recordOutcomeFromState, memoryGraphPath } = require('./gep/memoryGraph');
+const {
+  getMemoryAdvice,
+  recordSignalSnapshot,
+  recordHypothesis,
+  recordAttempt,
+  recordOutcomeFromState,
+  memoryGraphPath,
+} = require('./gep/memoryGraph');
+const { writeStateForSolidify } = require('./gep/solidify');
 
 const REPO_ROOT = getRepoRoot();
 
@@ -512,12 +527,46 @@ async function run() {
     userSnippet,
   });
 
+  const recentErrorMatches = recentMasterLog.match(/\[ERROR|Error:|Exception:|FAIL|Failed|"isError":true/gi) || [];
+  const recentErrorCount = recentErrorMatches.length;
+
+  const evidence = {
+    // Keep short; do not store full transcripts in the graph.
+    recent_session_tail: String(recentMasterLog || '').slice(-6000),
+    today_log_tail: String(todayLog || '').slice(-2500),
+  };
+
+  const observations = {
+    agent: AGENT_NAME,
+    drift_enabled: IS_RANDOM_DRIFT,
+    review_mode: IS_REVIEW_MODE,
+    dry_run: IS_DRY_RUN,
+    system_health: healthReport,
+    mood: moodStatus,
+    scan_ms: scanTime,
+    memory_size_bytes: memorySize,
+    recent_error_count: recentErrorCount,
+    node: process.version,
+    platform: process.platform,
+    cwd: process.cwd(),
+    evidence,
+  };
+
   // Memory Graph: close last action with an inferred outcome (append-only graph, mutable state).
   try {
-    recordOutcomeFromState({ signals });
+    recordOutcomeFromState({ signals, observations });
   } catch (e) {
     // If we can't read/write memory graph, refuse to evolve (no "memoryless evolution").
     console.error(`[MemoryGraph] Outcome write failed: ${e.message}`);
+    console.error(`[MemoryGraph] Refusing to evolve without causal memory. Target: ${memoryGraphPath()}`);
+    process.exit(2);
+  }
+
+  // Memory Graph: record current signals as a first-class node. If this fails, refuse to evolve.
+  try {
+    recordSignalSnapshot({ signals, observations });
+  } catch (e) {
+    console.error(`[MemoryGraph] Signal snapshot write failed: ${e.message}`);
     console.error(`[MemoryGraph] Refusing to evolve without causal memory. Target: ${memoryGraphPath()}`);
     process.exit(2);
   }
@@ -534,6 +583,66 @@ async function run() {
   }
   const recentCandidates = readRecentCandidates(20);
   const capabilityCandidatesPreview = renderCandidatesPreview(recentCandidates.slice(-8), 1600);
+
+  // External candidate zone (A2A receive): only surface candidates when local signals trigger them.
+  // External candidates are NEVER executed directly; they must be validated and promoted first.
+  let externalCandidatesPreview = '(none)';
+  try {
+    const external = readRecentExternalCandidates(50);
+    const list = Array.isArray(external) ? external : [];
+    const capsulesOnly = list.filter(x => x && x.type === 'Capsule');
+    const genesOnly = list.filter(x => x && x.type === 'Gene');
+
+    const matchedExternalGenes = genesOnly
+      .map(g => {
+        const pats = Array.isArray(g.signals_match) ? g.signals_match : [];
+        const hit = pats.reduce((acc, p) => (matchPatternToSignals(p, signals) ? acc + 1 : acc), 0);
+        return { gene: g, hit };
+      })
+      .filter(x => x.hit > 0)
+      .sort((a, b) => b.hit - a.hit)
+      .slice(0, 3)
+      .map(x => x.gene);
+
+    const matchedExternalCapsules = capsulesOnly
+      .map(c => {
+        const triggers = Array.isArray(c.trigger) ? c.trigger : [];
+        const score = triggers.reduce((acc, t) => (matchPatternToSignals(t, signals) ? acc + 1 : acc), 0);
+        return { capsule: c, score };
+      })
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(x => x.capsule);
+
+    if (matchedExternalGenes.length || matchedExternalCapsules.length) {
+      externalCandidatesPreview = `\`\`\`json\n${JSON.stringify(
+        [
+          ...matchedExternalGenes.map(g => ({
+            type: g.type,
+            id: g.id,
+            category: g.category || null,
+            signals_match: g.signals_match || [],
+            a2a: g.a2a || null,
+          })),
+          ...matchedExternalCapsules.map(c => ({
+            type: c.type,
+            id: c.id,
+            trigger: c.trigger,
+            gene: c.gene,
+            summary: c.summary,
+            confidence: c.confidence,
+            blast_radius: c.blast_radius || null,
+            outcome: c.outcome || null,
+            success_streak: c.success_streak || null,
+            a2a: c.a2a || null,
+          })),
+        ],
+        null,
+        2
+      )}\n\`\`\``;
+    }
+  } catch (e) {}
 
   // Memory Graph reasoning: prefer high-confidence paths, suppress known low-success paths (unless drift is explicit).
   let memoryAdvice = null;
@@ -553,6 +662,30 @@ async function run() {
     driftEnabled: IS_RANDOM_DRIFT,
   });
 
+  const selectedBy = memoryAdvice && memoryAdvice.preferredGeneId ? 'memory_graph+selector' : 'selector';
+  const capsulesUsed = Array.isArray(capsuleCandidates)
+    ? capsuleCandidates.map(c => (c && c.id ? String(c.id) : null)).filter(Boolean)
+    : [];
+
+  // Memory Graph: record hypothesis bridging Signal -> Action. If this fails, refuse to evolve.
+  let hypothesisId = null;
+  try {
+    const hyp = recordHypothesis({
+      signals,
+      selectedGene,
+      selector,
+      driftEnabled: IS_RANDOM_DRIFT,
+      selectedBy,
+      capsulesUsed,
+      observations,
+    });
+    hypothesisId = hyp && hyp.hypothesisId ? hyp.hypothesisId : null;
+  } catch (e) {
+    console.error(`[MemoryGraph] Hypothesis write failed: ${e.message}`);
+    console.error(`[MemoryGraph] Refusing to evolve without causal memory. Target: ${memoryGraphPath()}`);
+    process.exit(2);
+  }
+
   // Memory Graph: record the chosen causal path for this run. If this fails, refuse to output a mutation prompt.
   try {
     recordAttempt({
@@ -560,12 +693,75 @@ async function run() {
       selectedGene,
       selector,
       driftEnabled: IS_RANDOM_DRIFT,
-      selectedBy: memoryAdvice && memoryAdvice.preferredGeneId ? 'memory_graph+selector' : 'selector',
+      selectedBy,
+      hypothesisId,
+      capsulesUsed,
+      observations,
     });
   } catch (e) {
     console.error(`[MemoryGraph] Attempt write failed: ${e.message}`);
     console.error(`[MemoryGraph] Refusing to evolve without causal memory. Target: ${memoryGraphPath()}`);
     process.exit(2);
+  }
+
+  // Solidify state: capture minimal, auditable context for post-patch validation + asset write.
+  // This enforces strict protocol closure after patch application.
+  try {
+    const parentEventId = getLastEventId();
+    const selectedBy = memoryAdvice && memoryAdvice.preferredGeneId ? 'memory_graph+selector' : 'selector';
+
+    // Baseline snapshot (before any edits).
+    let baselineUntracked = [];
+    let baselineHead = null;
+    try {
+      const out = execSync('git ls-files --others --exclude-standard', {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 4000,
+      });
+      baselineUntracked = String(out)
+        .split('\n')
+        .map(l => l.trim())
+        .filter(Boolean);
+    } catch (e) {}
+
+    try {
+      const out = execSync('git rev-parse HEAD', {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 4000,
+      });
+      baselineHead = String(out || '').trim() || null;
+    } catch (e) {}
+
+    const maxFiles =
+      selectedGene && selectedGene.constraints && Number.isFinite(Number(selectedGene.constraints.max_files))
+        ? Number(selectedGene.constraints.max_files)
+        : 12;
+    const blastRadiusEstimate = {
+      files: Number.isFinite(maxFiles) && maxFiles > 0 ? maxFiles : 0,
+      lines: Number.isFinite(maxFiles) && maxFiles > 0 ? Math.round(maxFiles * 80) : 0,
+    };
+
+    writeStateForSolidify({
+      last_run: {
+        run_id: `run_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        parent_event_id: parentEventId || null,
+        selected_gene_id: selectedGene && selectedGene.id ? selectedGene.id : null,
+        selector: selector || null,
+        signals: Array.isArray(signals) ? signals : [],
+        drift: !!IS_RANDOM_DRIFT,
+        selected_by: selectedBy,
+        baseline_untracked: baselineUntracked,
+        baseline_git_head: baselineHead,
+        blast_radius_estimate: blastRadiusEstimate,
+      },
+    });
+  } catch (e) {
+    console.error(`[SolidifyState] Write failed: ${e.message}`);
   }
 
   const genesPreview = `\`\`\`json\n${JSON.stringify(genes.slice(0, 6), null, 2)}\n\`\`\``;
@@ -588,6 +784,9 @@ Notes:
 - ${reviewNote}
 - ${reportingDirective}
 - ${syncDirective}
+
+External candidates (A2A receive zone; staged only, never execute directly):
+${externalCandidatesPreview}
 
 Global memory (MEMORY.md):
 \`\`\`
@@ -624,9 +823,11 @@ ${mutation}
     genesPreview,
     capsulesPreview,
     capabilityCandidatesPreview,
+    externalCandidatesPreview,
   });
 
   console.log(prompt);
+  console.log('\n[SOLIDIFY REQUIRED] After applying the patch and validations, run: node index.js solidify');
 }
 
 module.exports = { run };

@@ -19,6 +19,7 @@
   ],
   "exclude": [
     "assets/gep/candidates.jsonl",
+    "assets/gep/external_candidates.jsonl",
     "docs/**",
     "memory/**",
     "dist-public/**",
