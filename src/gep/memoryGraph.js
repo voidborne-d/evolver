@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { getMemoryDir } = require('./paths');
+const { normalizePersonalityState, isValidPersonalityState, personalityKey } = require('./personality');
+const { isValidMutation, normalizeMutation } = require('./mutation');
 
 function ensureDir(dir) {
   try {
@@ -335,13 +337,26 @@ function buildHypothesisText({ signalKey, signals, geneId, geneCategory, driftEn
   return `Given signal_key=${signalKey} with ${sigCount} signals, selecting gene=${g} under mode=${drift} is expected to reduce repeated errors and improve stability.`;
 }
 
-function recordHypothesis({ signals, selectedGene, selector, driftEnabled, selectedBy, capsulesUsed, observations }) {
+function recordHypothesis({
+  signals,
+  mutation,
+  personality_state,
+  selectedGene,
+  selector,
+  driftEnabled,
+  selectedBy,
+  capsulesUsed,
+  observations,
+}) {
   const signalKey = computeSignalKey(signals);
   const geneId = selectedGene && selectedGene.id ? String(selectedGene.id) : null;
   const geneCategory = selectedGene && selectedGene.category ? String(selectedGene.category) : null;
   const ts = nowIso();
   const errsig = extractErrorSignatureFromSignals(signals);
   const hypothesisId = `hyp_${Date.now()}_${stableHash(`${signalKey}|${geneId || 'none'}|${ts}`)}`;
+  const personalityState = personality_state || null;
+  const mutNorm = mutation && isValidMutation(mutation) ? normalizeMutation(mutation) : null;
+  const psNorm = personalityState && isValidPersonalityState(personalityState) ? normalizePersonalityState(personalityState) : null;
   const ev = {
     type: 'MemoryGraphEvent',
     kind: 'hypothesis',
@@ -353,6 +368,22 @@ function recordHypothesis({ signals, selectedGene, selector, driftEnabled, selec
       text: buildHypothesisText({ signalKey, signals, geneId, geneCategory, driftEnabled }),
       predicted_outcome: { status: null, score: null },
     },
+    mutation: mutNorm
+      ? {
+          id: mutNorm.id,
+          category: mutNorm.category,
+          trigger_signals: mutNorm.trigger_signals,
+          target: mutNorm.target,
+          expected_effect: mutNorm.expected_effect,
+          risk_level: mutNorm.risk_level,
+        }
+      : null,
+    personality: psNorm
+      ? {
+          key: personalityKey(psNorm),
+          state: psNorm,
+        }
+      : null,
     gene: { id: geneId, category: geneCategory },
     action: {
       drift: !!driftEnabled,
@@ -373,19 +404,49 @@ function hasErrorSignal(signals) {
   return list.includes('log_error');
 }
 
-function recordAttempt({ signals, selectedGene, selector, driftEnabled, selectedBy, hypothesisId, capsulesUsed, observations }) {
+function recordAttempt({
+  signals,
+  mutation,
+  personality_state,
+  selectedGene,
+  selector,
+  driftEnabled,
+  selectedBy,
+  hypothesisId,
+  capsulesUsed,
+  observations,
+}) {
   const signalKey = computeSignalKey(signals);
   const geneId = selectedGene && selectedGene.id ? String(selectedGene.id) : null;
   const geneCategory = selectedGene && selectedGene.category ? String(selectedGene.category) : null;
   const ts = nowIso();
   const errsig = extractErrorSignatureFromSignals(signals);
   const actionId = `act_${Date.now()}_${stableHash(`${signalKey}|${geneId || 'none'}|${ts}`)}`;
+  const personalityState = personality_state || null;
+  const mutNorm = mutation && isValidMutation(mutation) ? normalizeMutation(mutation) : null;
+  const psNorm = personalityState && isValidPersonalityState(personalityState) ? normalizePersonalityState(personalityState) : null;
   const ev = {
     type: 'MemoryGraphEvent',
     kind: 'attempt',
     id: `mge_${Date.now()}_${stableHash(actionId)}`,
     ts,
     signal: { key: signalKey, signals: Array.isArray(signals) ? signals : [], error_signature: errsig || null },
+    mutation: mutNorm
+      ? {
+          id: mutNorm.id,
+          category: mutNorm.category,
+          trigger_signals: mutNorm.trigger_signals,
+          target: mutNorm.target,
+          expected_effect: mutNorm.expected_effect,
+          risk_level: mutNorm.risk_level,
+        }
+      : null,
+    personality: psNorm
+      ? {
+          key: personalityKey(psNorm),
+          state: psNorm,
+        }
+      : null,
     gene: { id: geneId, category: geneCategory },
     hypothesis: hypothesisId ? { id: String(hypothesisId) } : null,
     action: {
@@ -409,6 +470,11 @@ function recordAttempt({ signals, selectedGene, selector, driftEnabled, selected
     action_id: actionId,
     signal_key: signalKey,
     signals: Array.isArray(signals) ? signals : [],
+    mutation_id: mutNorm ? mutNorm.id : null,
+    mutation_category: mutNorm ? mutNorm.category : null,
+    mutation_risk_level: mutNorm ? mutNorm.risk_level : null,
+    personality_key: psNorm ? personalityKey(psNorm) : null,
+    personality_state: psNorm || null,
     gene_id: geneId,
     gene_category: geneCategory,
     hypothesis_id: hypothesisId ? String(hypothesisId) : null,
@@ -589,6 +655,21 @@ function recordOutcomeFromState({ signals, observations }) {
       signals: Array.isArray(last.signals) ? last.signals : [],
       error_signature: errsig || null,
     },
+    mutation:
+      last.mutation_id || last.mutation_category || last.mutation_risk_level
+        ? {
+            id: last.mutation_id || null,
+            category: last.mutation_category || null,
+            risk_level: last.mutation_risk_level || null,
+          }
+        : null,
+    personality:
+      last.personality_key || last.personality_state
+        ? {
+            key: last.personality_key || null,
+            state: last.personality_state || null,
+          }
+        : null,
     gene: { id: last.gene_id || null, category: last.gene_category || null },
     action: { id: String(last.action_id) },
     hypothesis: last.hypothesis_id ? { id: String(last.hypothesis_id) } : null,

@@ -7,6 +7,7 @@ const { extractSignals } = require('./gep/signals');
 const {
   loadGenes,
   loadCapsules,
+  readAllEvents,
   getLastEventId,
   appendCandidateJsonl,
   readRecentCandidates,
@@ -24,6 +25,8 @@ const {
   memoryGraphPath,
 } = require('./gep/memoryGraph');
 const { writeStateForSolidify } = require('./gep/solidify');
+const { buildMutation, isHighRiskMutationAllowed } = require('./gep/mutation');
+const { selectPersonalityForRun } = require('./gep/personality');
 
 const REPO_ROOT = getRepoRoot();
 
@@ -494,7 +497,7 @@ async function run() {
     fileList = `Error listing skills: ${e.message}`;
   }
 
-  const mutation = getMutationDirective(recentMasterLog);
+  const mutationDirective = getMutationDirective(recentMasterLog);
   const healthReport = checkSystemHealth();
 
   // Feature: Mood Awareness (Mode E - Personalization)
@@ -520,6 +523,14 @@ async function run() {
 
   const genes = loadGenes();
   const capsules = loadCapsules();
+  const recentEvents = (() => {
+    try {
+      const all = readAllEvents();
+      return Array.isArray(all) ? all.filter(e => e && e.type === 'EvolutionEvent').slice(-80) : [];
+    } catch (e) {
+      return [];
+    }
+  })();
   const signals = extractSignals({
     recentSessionTranscript: recentMasterLog,
     todayLog,
@@ -666,12 +677,62 @@ async function run() {
   const capsulesUsed = Array.isArray(capsuleCandidates)
     ? capsuleCandidates.map(c => (c && c.id ? String(c.id) : null)).filter(Boolean)
     : [];
+  const selectedCapsuleId = capsulesUsed.length ? capsulesUsed[0] : null;
+
+  // Personality selection (natural selection + small mutation when triggered).
+  // This state is persisted in MEMORY_DIR and is treated as an evolution control surface (not role-play).
+  const personalitySelection = selectPersonalityForRun({
+    driftEnabled: IS_RANDOM_DRIFT,
+    signals,
+    recentEvents,
+  });
+  const personalityState = personalitySelection && personalitySelection.personality_state ? personalitySelection.personality_state : null;
+
+  // Mutation object is mandatory for every evolution run.
+  const tail = Array.isArray(recentEvents) ? recentEvents.slice(-6) : [];
+  const tailOutcomes = tail
+    .map(e => (e && e.outcome && e.outcome.status ? String(e.outcome.status) : null))
+    .filter(Boolean);
+  const stableSuccess = tailOutcomes.length >= 6 && tailOutcomes.every(s => s === 'success');
+  const tailAvgScore =
+    tail.length > 0
+      ? tail.reduce((acc, e) => acc + (e && e.outcome && Number.isFinite(Number(e.outcome.score)) ? Number(e.outcome.score) : 0), 0) /
+        tail.length
+      : 0;
+  const innovationPressure =
+    !IS_RANDOM_DRIFT &&
+    personalityState &&
+    Number.isFinite(Number(personalityState.creativity)) &&
+    Number(personalityState.creativity) >= 0.75 &&
+    stableSuccess &&
+    tailAvgScore >= 0.7;
+  const mutationInnovateMode = !!IS_RANDOM_DRIFT || !!innovationPressure;
+  const mutationSignals = innovationPressure ? [...(Array.isArray(signals) ? signals : []), 'stable_success_plateau'] : signals;
+
+  const allowHighRisk =
+    !!IS_RANDOM_DRIFT &&
+    !!personalitySelection &&
+    !!personalitySelection.personality_known &&
+    personalityState &&
+    isHighRiskMutationAllowed(personalityState) &&
+    Number(personalityState.rigor) >= 0.8 &&
+    Number(personalityState.risk_tolerance) <= 0.3 &&
+    !(Array.isArray(signals) && signals.includes('log_error'));
+  const mutation = buildMutation({
+    signals: mutationSignals,
+    selectedGene,
+    driftEnabled: mutationInnovateMode,
+    personalityState,
+    allowHighRisk,
+  });
 
   // Memory Graph: record hypothesis bridging Signal -> Action. If this fails, refuse to evolve.
   let hypothesisId = null;
   try {
     const hyp = recordHypothesis({
       signals,
+      mutation,
+      personality_state: personalityState,
       selectedGene,
       selector,
       driftEnabled: IS_RANDOM_DRIFT,
@@ -690,6 +751,8 @@ async function run() {
   try {
     recordAttempt({
       signals,
+      mutation,
+      personality_state: personalityState,
       selectedGene,
       selector,
       driftEnabled: IS_RANDOM_DRIFT,
@@ -751,8 +814,18 @@ async function run() {
         created_at: new Date().toISOString(),
         parent_event_id: parentEventId || null,
         selected_gene_id: selectedGene && selectedGene.id ? selectedGene.id : null,
+        selected_capsule_id: selectedCapsuleId,
         selector: selector || null,
         signals: Array.isArray(signals) ? signals : [],
+        mutation: mutation || null,
+        mutation_id: mutation && mutation.id ? mutation.id : null,
+        personality_state: personalityState || null,
+        personality_key: personalitySelection && personalitySelection.personality_key ? personalitySelection.personality_key : null,
+        personality_known: !!(personalitySelection && personalitySelection.personality_known),
+        personality_mutations:
+          personalitySelection && Array.isArray(personalitySelection.personality_mutations)
+            ? personalitySelection.personality_mutations
+            : [],
         drift: !!IS_RANDOM_DRIFT,
         selected_by: selectedBy,
         baseline_untracked: baselineUntracked,
@@ -809,7 +882,7 @@ ${recentMasterLog}
 \`\`\`
 
 Mutation directive:
-${mutation}
+${mutationDirective}
 `.trim();
 
   const prompt = buildGepPrompt({

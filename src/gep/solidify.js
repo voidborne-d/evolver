@@ -7,6 +7,13 @@ const { computeCapsuleSuccessStreak, isBlastRadiusSafe } = require('./a2a');
 const { getRepoRoot, getMemoryDir } = require('./paths');
 const { extractSignals } = require('./signals');
 const { selectGene } = require('./selector');
+const { isValidMutation, normalizeMutation, isHighRiskMutationAllowed, isHighRiskPersonality } = require('./mutation');
+const {
+  isValidPersonalityState,
+  normalizePersonalityState,
+  personalityKey,
+  updatePersonalityStats,
+} = require('./personality');
 
 function nowIso() {
   return new Date().toISOString();
@@ -351,6 +358,27 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       : extractSignals(readRecentSessionInputs());
   const signalKey = computeSignalKey(signals);
 
+  // Mandatory: Mutation + PersonalityState must exist for every evolution.
+  const mutationRaw = lastRun && lastRun.mutation && typeof lastRun.mutation === 'object' ? lastRun.mutation : null;
+  const personalityRaw =
+    lastRun && lastRun.personality_state && typeof lastRun.personality_state === 'object' ? lastRun.personality_state : null;
+  const mutation = mutationRaw && isValidMutation(mutationRaw) ? normalizeMutation(mutationRaw) : null;
+  const personalityState =
+    personalityRaw && isValidPersonalityState(personalityRaw) ? normalizePersonalityState(personalityRaw) : null;
+  const personalityKeyUsed = personalityState ? personalityKey(personalityState) : null;
+  const protocolViolations = [];
+  if (!mutation) protocolViolations.push('missing_or_invalid_mutation');
+  if (!personalityState) protocolViolations.push('missing_or_invalid_personality_state');
+  if (mutation && mutation.risk_level === 'high' && !isHighRiskMutationAllowed(personalityState || null)) {
+    protocolViolations.push('high_risk_mutation_not_allowed_by_personality');
+  }
+  if (mutation && mutation.risk_level === 'high' && !(lastRun && lastRun.personality_known)) {
+    protocolViolations.push('high_risk_mutation_forbidden_under_unknown_personality');
+  }
+  if (mutation && mutation.category === 'innovate' && personalityState && isHighRiskPersonality(personalityState)) {
+    protocolViolations.push('forbidden_innovate_with_high_risk_personality');
+  }
+
   const ensured = ensureGene({ genes, selectedGene, signals, intent, dryRun: !!dryRun });
   const geneUsed = ensured.gene;
 
@@ -362,7 +390,7 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
     validation = runValidations(geneUsed, { repoRoot, timeoutMs: 180000 });
   }
 
-  const success = constraintCheck.ok && validation.ok;
+  const success = constraintCheck.ok && validation.ok && protocolViolations.length === 0;
   const ts = nowIso();
 
   const outcomeStatus = success ? 'success' : 'failed';
@@ -373,13 +401,19 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       ? String(lastRun.selected_capsule_id).trim()
       : null;
   const capsuleId = success ? selectedCapsuleId || buildCapsuleId(ts) : null;
+  const derivedIntent = intent || (mutation && mutation.category) || (geneUsed && geneUsed.category) || 'repair';
+  const intentMismatch =
+    intent && mutation && typeof mutation.category === 'string' && String(intent) !== String(mutation.category);
+  if (intentMismatch) protocolViolations.push(`intent_mismatch_with_mutation:${String(intent)}!=${String(mutation.category)}`);
   const event = {
     type: 'EvolutionEvent',
     id: buildEventId(ts),
     parent: parentEventId || null,
-    intent: intent || (geneUsed && geneUsed.category) || 'repair',
+    intent: derivedIntent,
     signals,
     genes_used: geneUsed && geneUsed.id ? [geneUsed.id] : [],
+    mutation_id: mutation && mutation.id ? mutation.id : null,
+    personality_state: personalityState || null,
     blast_radius: { files: blast.files, lines: blast.lines },
     outcome: { status: outcomeStatus, score },
     capsule_id: capsuleId,
@@ -388,6 +422,13 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       signal_key: signalKey,
       selector: lastRun && lastRun.selector ? lastRun.selector : null,
       blast_radius_estimate: lastRun && lastRun.blast_radius_estimate ? lastRun.blast_radius_estimate : null,
+      mutation: mutation || null,
+      personality: {
+        key: personalityKeyUsed,
+        known: !!(lastRun && lastRun.personality_known),
+        mutations:
+          lastRun && Array.isArray(lastRun.personality_mutations) ? lastRun.personality_mutations : [],
+      },
       gene: {
         id: geneUsed && geneUsed.id ? geneUsed.id : null,
         created: !!ensured.created,
@@ -397,6 +438,8 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       constraint_violations: constraintCheck.violations,
       validation_ok: validation.ok,
       validation: validation.results.map(r => ({ cmd: r.cmd, ok: r.ok })),
+      protocol_ok: protocolViolations.length === 0,
+      protocol_violations: protocolViolations,
       memory_graph: memoryGraphPath(),
     },
   };
@@ -454,6 +497,18 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       };
       upsertCapsule(capsule);
     }
+
+    // Update personality natural-selection stats (ground truth from EvolutionEvent).
+    try {
+      if (personalityState) {
+        updatePersonalityStats({
+          personalityState,
+          outcome: outcomeStatus,
+          score,
+          notes: `event:${event.id}`,
+        });
+      }
+    } catch (e) {}
   }
 
   // Update state to prevent accidental double-solidify.

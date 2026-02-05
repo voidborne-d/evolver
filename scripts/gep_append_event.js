@@ -50,6 +50,14 @@ function isValidEvolutionEvent(ev) {
   if (!ev.intent || typeof ev.intent !== 'string') return false;
   if (!Array.isArray(ev.signals)) return false;
   if (!Array.isArray(ev.genes_used)) return false;
+  // GEP v1.4: mutation + personality are mandatory evolution dimensions
+  if (!ev.mutation_id || typeof ev.mutation_id !== 'string') return false;
+  if (!ev.personality_state || typeof ev.personality_state !== 'object') return false;
+  if (ev.personality_state.type !== 'PersonalityState') return false;
+  for (const k of ['rigor', 'creativity', 'verbosity', 'risk_tolerance', 'obedience']) {
+    const v = Number(ev.personality_state[k]);
+    if (!Number.isFinite(v) || v < 0 || v > 1) return false;
+  }
   if (!ev.blast_radius || typeof ev.blast_radius !== 'object') return false;
   if (!Number.isFinite(Number(ev.blast_radius.files))) return false;
   if (!Number.isFinite(Number(ev.blast_radius.lines))) return false;
