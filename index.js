@@ -1,4 +1,5 @@
 const evolve = require('./src/evolve');
+const { solidify } = require('./src/gep/solidify');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -49,8 +50,38 @@ async function main() {
     console.log('Upstream: https://github.com/autogame-17/capability-evolver');
     console.log('=======================================================\n');
     
+  } else if (command === 'solidify') {
+    const dryRun = args.includes('--dry-run');
+    const noRollback = args.includes('--no-rollback');
+    const intentFlag = args.find(a => typeof a === 'string' && a.startsWith('--intent='));
+    const summaryFlag = args.find(a => typeof a === 'string' && a.startsWith('--summary='));
+    const intent = intentFlag ? intentFlag.slice('--intent='.length) : null;
+    const summary = summaryFlag ? summaryFlag.slice('--summary='.length) : null;
+
+    try {
+      const res = solidify({
+        intent: intent || undefined,
+        summary: summary || undefined,
+        dryRun,
+        rollbackOnFailure: !noRollback,
+      });
+      const st = res && res.ok ? 'SUCCESS' : 'FAILED';
+      console.log(`[SOLIDIFY] ${st}`);
+      if (res && res.gene) console.log(JSON.stringify(res.gene, null, 2));
+      if (res && res.event) console.log(JSON.stringify(res.event, null, 2));
+      if (res && res.capsule) console.log(JSON.stringify(res.capsule, null, 2));
+      process.exit(res && res.ok ? 0 : 2);
+    } catch (error) {
+      console.error('[SOLIDIFY] Error:', error);
+      process.exit(2);
+    }
   } else {
-    console.log(`Usage: node index.js [run|/evolve] [--loop]`);
+    console.log(`Usage: node index.js [run|/evolve|solidify] [--loop]
+  - solidify flags:
+    - --dry-run
+    - --no-rollback
+    - --intent=repair|optimize|innovate
+    - --summary=...`);
   }
 }
 
