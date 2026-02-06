@@ -33,7 +33,7 @@ const REPO_ROOT = getRepoRoot();
 
 // Load environment variables from repo root
 try {
-  require('dotenv').config({ path: path.join(REPO_ROOT, '.env') });
+  require('dotenv').config({ path: path.join(REPO_ROOT, '.env'), quiet: true });
 } catch (e) {
   // dotenv might not be installed or .env missing, proceed gracefully
 }
