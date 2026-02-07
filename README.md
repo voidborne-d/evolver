@@ -137,6 +137,13 @@ MAJOR.MINOR.PATCH
 
 ## Changelog
 
+### v1.6.0
+- Add innovation/opportunity signal detection: user_feature_request, user_improvement_suggestion, perf_bottleneck, capability_gap, stable_success_plateau, external_opportunity.
+- Add innovate Gene (gene_gep_innovate_from_opportunity) for proactive feature development.
+- Auto-innovate mutation when opportunity signals are present (no longer requires --drift flag).
+- Personality evolution now responds to opportunity signals by increasing creativity.
+- Safety: repair still takes priority over innovate when errors are present.
+
 ### v1.5.1
 - Add containerized vibe testing framework (Docker + node:22-bookworm, OpenClaw-compatible environment).
 - 7 end-to-end tests: module load, dry-run solidify, schema compliance, A2A round-trip, full evolve+solidify, loop gating, env fingerprint.
