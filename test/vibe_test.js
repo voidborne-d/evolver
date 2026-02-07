@@ -212,6 +212,80 @@ run('T4', 'a2a_round_trip', function () {
 });
 
 // ---------------------------------------------------------------------------
+// T4b: Innovation Signal Detection
+// ---------------------------------------------------------------------------
+
+run('T4b', 'innovation_signal', function () {
+  var signals = require(path.join(SKILL_ROOT, 'src/gep/signals'));
+  var mutation = require(path.join(SKILL_ROOT, 'src/gep/mutation'));
+
+  // Test 1: user_feature_request detection
+  var res1 = signals.extractSignals({
+    recentSessionTranscript: 'The user said: please add a new notification module for the agent.',
+    todayLog: '',
+    memorySnippet: '',
+    userSnippet: '',
+  });
+  assert(res1.includes('user_feature_request'), 'should detect user_feature_request from "please add ... module"');
+
+  // Test 2: "I want X" pattern
+  var res2 = signals.extractSignals({
+    recentSessionTranscript: 'I want a dashboard that shows evolution history.',
+    todayLog: '',
+    memorySnippet: '',
+    userSnippet: '',
+  });
+  assert(res2.includes('user_feature_request'), 'should detect user_feature_request from "I want ..."');
+
+  // Test 3: perf_bottleneck detection
+  var res3 = signals.extractSignals({
+    recentSessionTranscript: 'The scan took too long, over 30 seconds of latency.',
+    todayLog: '',
+    memorySnippet: '',
+    userSnippet: '',
+  });
+  assert(res3.includes('perf_bottleneck'), 'should detect perf_bottleneck from "took too long" and "latency"');
+
+  // Test 4: capability_gap detection
+  var res4 = signals.extractSignals({
+    recentSessionTranscript: 'HTTP transport is not supported yet for A2A.',
+    todayLog: '',
+    memorySnippet: '',
+    userSnippet: '',
+  });
+  assert(res4.includes('capability_gap'), 'should detect capability_gap from "not supported"');
+
+  // Test 5: user_improvement_suggestion (without error)
+  var res5 = signals.extractSignals({
+    recentSessionTranscript: 'The prompt assembly could be better and should be simplified.',
+    todayLog: '',
+    memorySnippet: '',
+    userSnippet: '',
+  });
+  assert(res5.includes('user_improvement_suggestion'), 'should detect user_improvement_suggestion from "could be better"');
+
+  // Test 6: mutation category should be innovate when opportunity signal present
+  var cat1 = mutation.buildMutation({ signals: ['user_feature_request'], driftEnabled: false });
+  assert(cat1.category === 'innovate', 'mutation category should be innovate for user_feature_request, got: ' + cat1.category);
+
+  var cat2 = mutation.buildMutation({ signals: ['perf_bottleneck'], driftEnabled: false });
+  assert(cat2.category === 'innovate', 'mutation category should be innovate for perf_bottleneck, got: ' + cat2.category);
+
+  // Test 7: repair still takes priority over innovate
+  var cat3 = mutation.buildMutation({ signals: ['log_error', 'user_feature_request'], driftEnabled: false });
+  assert(cat3.category === 'repair', 'mutation category should be repair when log_error is present even with opportunity signal, got: ' + cat3.category);
+
+  // Test 8: no signals -> optimize (not innovate)
+  var cat4 = mutation.buildMutation({ signals: [], driftEnabled: false });
+  assert(cat4.category === 'optimize', 'mutation category should be optimize with no signals, got: ' + cat4.category);
+
+  // Test 9: hasOpportunitySignal utility
+  assert(mutation.hasOpportunitySignal(['user_feature_request']) === true, 'hasOpportunitySignal should return true');
+  assert(mutation.hasOpportunitySignal(['log_error']) === false, 'hasOpportunitySignal should return false for error signals');
+  assert(mutation.hasOpportunitySignal([]) === false, 'hasOpportunitySignal should return false for empty signals');
+});
+
+// ---------------------------------------------------------------------------
 // T5: Full evolve + solidify
 // ---------------------------------------------------------------------------
 
