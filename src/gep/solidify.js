@@ -538,6 +538,26 @@ function runValidations(gene, opts = {}) {
   return { ok: true, results, startedAt, finishedAt: Date.now() };
 }
 
+// --- Canary via Fork: verify index.js loads in an isolated child process ---
+// This is the last safety net before solidify commits an evolution.
+// If a patch broke index.js, the canary catches it BEFORE the daemon
+// restarts with broken code. Runs with a short timeout to avoid blocking.
+function runCanaryCheck(opts) {
+  const repoRoot = (opts && opts.repoRoot) ? opts.repoRoot : getRepoRoot();
+  const timeoutMs = (opts && Number.isFinite(Number(opts.timeoutMs))) ? Number(opts.timeoutMs) : 30000;
+  const canaryScript = path.join(repoRoot, 'src', 'canary.js');
+  if (!fs.existsSync(canaryScript)) {
+    return { ok: true, skipped: true, reason: 'canary.js not found' };
+  }
+  const r = tryRunCmd(`node "${canaryScript}"`, { cwd: repoRoot, timeoutMs });
+  return {
+    ok: r.ok,
+    skipped: false,
+    out: String(r.out || '').slice(0, 500),
+    err: String(r.err || '').slice(0, 500),
+  };
+}
+
 function rollbackTracked(repoRoot) {
   tryRunCmd('git restore --staged --worktree .', { cwd: repoRoot, timeoutMs: 60000 });
   tryRunCmd('git reset --hard', { cwd: repoRoot, timeoutMs: 60000 });
@@ -737,6 +757,17 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
     validation = runValidations(geneUsed, { repoRoot, timeoutMs: 180000 });
   }
 
+  // Canary safety: verify index.js loads in an isolated child process.
+  // This catches broken entry points that gene validations might miss.
+  const canary = runCanaryCheck({ repoRoot, timeoutMs: 30000 });
+  if (!canary.ok && !canary.skipped) {
+    constraintCheck.violations.push(
+      `canary_failed: index.js cannot load in child process: ${canary.err}`
+    );
+    constraintCheck.ok = false;
+    console.error(`[Solidify] CANARY FAILED: ${canary.err}`);
+  }
+
   // Build standardized ValidationReport (machine-readable, interoperable).
   const validationReport = buildValidationReport({
     geneId: geneUsed && geneUsed.id ? geneUsed.id : null,
@@ -808,6 +839,8 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       validation_ok: validation.ok,
       validation: validation.results.map(r => ({ cmd: r.cmd, ok: r.ok })),
       validation_report: validationReport,
+      canary_ok: canary.ok,
+      canary_skipped: !!canary.skipped,
       protocol_ok: protocolViolations.length === 0,
       protocol_violations: protocolViolations,
       memory_graph: memoryGraphPath(),
@@ -945,6 +978,7 @@ module.exports = {
   classifyBlastSeverity,
   analyzeBlastRadiusBreakdown,
   compareBlastEstimate,
+  runCanaryCheck,
   BLAST_RADIUS_HARD_CAP_FILES,
   BLAST_RADIUS_HARD_CAP_LINES,
 };
