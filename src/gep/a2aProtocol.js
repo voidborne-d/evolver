@@ -311,6 +311,66 @@ function httpTransportList() {
   return ['http'];
 }
 
+// --- Heartbeat ---
+
+var _heartbeatTimer = null;
+var _heartbeatStartedAt = null;
+
+function getHubUrl() {
+  return process.env.A2A_HUB_URL || process.env.EVOMAP_HUB_URL || '';
+}
+
+function sendHeartbeat() {
+  var hubUrl = getHubUrl();
+  if (!hubUrl) return Promise.resolve({ ok: false, error: 'no_hub_url' });
+
+  var endpoint = hubUrl.replace(/\/+$/, '') + '/a2a/heartbeat';
+  var nodeId = getNodeId();
+  var body = JSON.stringify({
+    node_id: nodeId,
+    sender_id: nodeId,
+    version: PROTOCOL_VERSION,
+    uptime_ms: _heartbeatStartedAt ? Date.now() - _heartbeatStartedAt : 0,
+    timestamp: new Date().toISOString(),
+  });
+
+  return fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body,
+    signal: AbortSignal.timeout(10000),
+  })
+    .then(function (res) { return res.json(); })
+    .then(function (data) { return { ok: true, response: data }; })
+    .catch(function (err) { return { ok: false, error: err.message }; });
+}
+
+function startHeartbeat(intervalMs) {
+  if (_heartbeatTimer) return;
+  var interval = intervalMs || Number(process.env.HEARTBEAT_INTERVAL_MS) || 300000; // default 5min
+  _heartbeatStartedAt = Date.now();
+
+  // Send immediately on start, then repeat
+  sendHeartbeat().then(function (r) {
+    if (r.ok) console.log('[Heartbeat] Connected to hub. Node: ' + getNodeId());
+    else console.warn('[Heartbeat] Initial heartbeat failed: ' + (r.error || 'unknown'));
+  }).catch(function () {});
+
+  _heartbeatTimer = setInterval(function () {
+    sendHeartbeat().catch(function () {});
+  }, interval);
+
+  // Don't let the heartbeat timer prevent process exit
+  if (_heartbeatTimer.unref) _heartbeatTimer.unref();
+}
+
+function stopHeartbeat() {
+  if (_heartbeatTimer) {
+    clearInterval(_heartbeatTimer);
+    _heartbeatTimer = null;
+  }
+}
+
 // --- Transport registry ---
 
 var transports = {
@@ -364,4 +424,7 @@ module.exports = {
   httpTransportSend,
   httpTransportReceive,
   httpTransportList,
+  sendHeartbeat,
+  startHeartbeat,
+  stopHeartbeat,
 };

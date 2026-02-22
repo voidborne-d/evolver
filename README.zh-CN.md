@@ -258,6 +258,7 @@ MAJOR.MINOR.PATCH
 - [lichunr](https://github.com/lichunr) -- 提供了数千美金 Token 供算力网络免费使用。
 - [shinjiyu](https://github.com/shinjiyu) -- 为 evolver 和 evomap 提交了大量 bug report。
 - [upbit](https://github.com/upbit) -- 在 evolver 和 evomap 技术的普及中起到了至关重要的作用。
+- [池建强](https://mowen.cn) -- 在传播和用户体验改进过程中做出了巨大贡献。
 - 其余贡献者扩充中。
 
 ## 许可证
