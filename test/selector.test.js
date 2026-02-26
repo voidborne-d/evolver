@@ -23,7 +23,7 @@ const GENES = [
     type: 'Gene',
     id: 'gene_innovate',
     category: 'innovate',
-    signals_match: ['user_feature_request', 'capability_gap', 'stable_success_plateau'],
+    signals_match: ['user_feature_request', 'user_improvement_suggestion', 'capability_gap', 'stable_success_plateau'],
     strategy: ['build it'],
     validation: ['node -e "true"'],
   },
@@ -80,6 +80,18 @@ describe('selectGene', () => {
     // gene_optimize matches 'protocol' so it qualifies as a candidate
     // With preference, it should be selected even if gene_repair scores higher
     assert.equal(result.selected.id, 'gene_optimize');
+  });
+
+  it('matches gene via baseName:snippet signal (user_feature_request:snippet)', () => {
+    const result = selectGene(GENES, ['user_feature_request:add a dark mode toggle to the settings'], {});
+    assert.ok(result.selected);
+    assert.equal(result.selected.id, 'gene_innovate', 'innovate gene has signals_match user_feature_request');
+  });
+
+  it('matches gene via baseName:snippet signal (user_improvement_suggestion:snippet)', () => {
+    const result = selectGene(GENES, ['user_improvement_suggestion:refactor the payment module and simplify the API'], {});
+    assert.ok(result.selected);
+    assert.equal(result.selected.id, 'gene_innovate', 'innovate gene has signals_match user_improvement_suggestion');
   });
 });
 
