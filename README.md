@@ -1,5 +1,10 @@
 # 🧬 Capability Evolver
 
+[![Protocol](https://img.shields.io/badge/protocol-PCEC-green)](https://github.com/voidborne-d/evolver)
+[![Self-Evolving](https://img.shields.io/badge/self--evolving-yes-brightgreen)](https://github.com/voidborne-d/evolver)
+[![License](https://img.shields.io/github/license/voidborne-d/evolver)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/voidborne-d/evolver?style=social)](https://github.com/voidborne-d/evolver)
+
 ![Capability Evolver Cover](assets/cover.png)
 
 [Chinese Docs](README.zh-CN.md)
